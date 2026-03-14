@@ -6,3 +6,14 @@ npm-debug.log*
 dist/
 build/
 .DS_Store
+
+# Source code files - keep documentation only
+*.js
+*.html
+*.css
+images/
+!README.md
+!CHANGELOG.md
+!LICENSE
+!package.json
+
