@@ -121,18 +121,9 @@ function initialize() {
     loadImages();
     setupCategoryTabs();
     setup1V1();
-    setupHotkeySettings();
     
-    // Register global hotkeys with main process
-    syncHotkeysToMain();
-    
-    // Listen for global hotkeys
-    if (window.api?.onGlobalHotkey) {
-      window.api.onGlobalHotkey((action) => {
-        if (action === 'startStop') toggleTimer();
-        else if (action === 'reset') resetTimer();
-      });
-    }
+    // New dual-timer system uses local hotkeys (arrow keys + space)
+    // Global hotkeys deprecated - handled by handleTimerHotkeys()
     
     console.log('Renderer initialized successfully');
   } catch (error) {
@@ -833,163 +824,13 @@ function subtractScore(player) {
 /**
  * Setup hotkey customization UI
  */
-function setupHotkeySettings() {
-  try {
-    updateHotkeyDisplays();
-    setupHotkeyInputs();
-    setupHotkeyResetButtons();
-    setupAlwaysOnTopToggle();
-  } catch (error) {
-    console.error('Error in setupHotkeySettings:', error);
-  }
-}
+// Old hotkey settings removed - using fixed local hotkeys for dual-timer system
+// Arrow Left/Right to switch players, Space/Enter to toggle timer
 
-/**
- * Update displayed hotkey values
- */
-function updateHotkeyDisplays() {
-  const startStopInput = document.getElementById('hotkeyStartStop');
-  const resetInput = document.getElementById('hotkeyReset');
-  
-  if (startStopInput) {
-    startStopInput.value = formatKeyDisplay(state.customHotkeys.startStop);
-  }
-  if (resetInput) {
-    resetInput.value = formatKeyDisplay(state.customHotkeys.reset);
-  }
-}
-
-/**
- * Setup hotkey input listeners
- */
-function setupHotkeyInputs() {
-  if (!DOM.hotkeyInputs) return;
-
-  DOM.hotkeyInputs.forEach(input => {
-    input.addEventListener('click', () => {
-      startListeningForHotkey(input.id);
-    });
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (state.listeningForHotkey) {
-      e.preventDefault();
-      const hotkeyName = state.listeningForHotkey
-        .replace('hotkey', '')
-        .replace(/^./, str => str.toLowerCase());
-      
-      state.customHotkeys[hotkeyName] = e.key.toLowerCase();
-      saveHotkeys();
-      
-      const inputEl = document.getElementById(state.listeningForHotkey);
-      if (inputEl) {
-        inputEl.value = formatKeyDisplay(e.key.toLowerCase());
-        inputEl.classList.remove('listening');
-      }
-      
-      state.listeningForHotkey = null;
-    }
-  });
-}
-
-/**
- * Start listening for a new hotkey
- * @param {string} inputId - The input element ID
- */
-function startListeningForHotkey(inputId) {
-  if (state.listeningForHotkey) {
-    const prevInput = document.getElementById(state.listeningForHotkey);
-    if (prevInput) prevInput.classList.remove('listening');
-  }
-  
-  state.listeningForHotkey = inputId;
-  const inputEl = document.getElementById(inputId);
-  if (inputEl) {
-    inputEl.classList.add('listening');
-    inputEl.value = 'Press any key...';
-  }
-}
-
-/**
- * Setup hotkey reset buttons
- */
-function setupHotkeyResetButtons() {
-  if (!DOM.resetHotKeyBtns) return;
-
-  DOM.resetHotKeyBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      resetHotkey(btn.dataset.hotkey);
-    });
-  });
-}
-
-/**
- * Reset hotkey to default
- * @param {string} hotkeyName - Name of hotkey to reset
- */
-function resetHotkey(hotkeyName) {
-  state.customHotkeys[hotkeyName] = CONFIG.DEFAULT_HOTKEYS[hotkeyName];
-  saveHotkeys();
-  
-  const inputId = 'hotkey' + hotkeyName.charAt(0).toUpperCase() + hotkeyName.slice(1);
-  const inputEl = document.getElementById(inputId);
-  if (inputEl) {
-    inputEl.value = formatKeyDisplay(state.customHotkeys[hotkeyName]);
-    inputEl.classList.remove('listening');
-  }
-}
-
-/**
- * Setup always-on-top toggle for timer window
- */
-function setupAlwaysOnTopToggle() {
-  if (!DOM.alwaysOnTopCheckbox) return;
-
-  try {
-    const savedAlwaysOnTop = localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_ALWAYS_ON_TOP) === 'true';
-    DOM.alwaysOnTopCheckbox.checked = savedAlwaysOnTop;
-
-    DOM.alwaysOnTopCheckbox.addEventListener('change', () => {
-      localStorage.setItem(CONFIG.STORAGE_KEYS.TIMER_ALWAYS_ON_TOP, 
-        DOM.alwaysOnTopCheckbox.checked ? 'true' : 'false');
-      window.api?.setTimerAlwaysOnTop(DOM.alwaysOnTopCheckbox.checked);
-    });
-  } catch (error) {
-    console.error('Error setting up always-on-top toggle:', error);
-  }
-}
-
-/**
- * Save custom hotkeys to localStorage and IPC
- */
-function saveHotkeys() {
-  localStorage.setItem(CONFIG.STORAGE_KEYS.CUSTOM_HOTKEYS, JSON.stringify(state.customHotkeys));
-  syncHotkeysToMain();
-}
-
-/**
- * Sync hotkeys with main process
- */
-function syncHotkeysToMain() {
-  if (window.api?.setGlobalHotkeys) {
-    window.api.setGlobalHotkeys(state.customHotkeys);
-  }
-}
-
-/**
- * Format key for display
- * @param {string} key - The key to format
- * @returns {string} Formatted key display
- */
-function formatKeyDisplay(key) {
-  const keyMap = {
-    ' ': 'Space',
-    'enter': 'Enter',
-    'arrowup': '↑',
-    'arrowdown': '↓',
-    'arrowleft': '←',
-    'arrowright': '→'
-  };
-
-  return keyMap[key] || key.toUpperCase();
-}
+// ============================================
+// Old Hotkey System Deprecated
+// ============================================
+// Global hotkeys removed - dual-timer uses fixed local hotkeys
+// Arrow Left/Right to switch players
+// Space/Enter to toggle active player timer
+// No configurable hotkeys for new system

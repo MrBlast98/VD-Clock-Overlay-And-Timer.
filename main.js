@@ -6,7 +6,6 @@ let popOutWindows = {};
 let timerPopOutWindow = null;
 let mainWindow = null;
 let timerState = { seconds: 0, running: false };
-let currentHotkeys = { startStop: ' ', reset: 'r' };
 
 // Separate timers for each player
 let player1Timer = {
@@ -262,54 +261,12 @@ ipcMain.on('update-timer-color', (event, { color, colorName }) => {
   }
 });
 
-// Handle hotkey updates
+// Global hotkey system deprecated - using local hotkeys for dual-timer
+// IPC handler kept for backwards compatibility but not actively used
 ipcMain.on('set-global-hotkeys', (event, hotkeys) => {
-  // Unregister old shortcuts
-  globalShortcut.unregisterAll();
-  
-  // Store new hotkeys
-  currentHotkeys = hotkeys;
-  
-  // Register new shortcuts
-  registerGlobalHotkeys();
+  // Global hotkeys no longer registered for dual-timer system
+  console.log('Global hotkeys update received but not used - dual-timer uses local hotkeys');
 });
-
-function registerGlobalHotkeys() {
-  try {
-    // Unregister all previous shortcuts
-    globalShortcut.unregisterAll();
-    
-    // Convert hotkey strings to Electron accelerator format
-    const convertKey = (key) => {
-      if (key === ' ') return 'Space';
-      if (key.length === 1) return key.toUpperCase();
-      return key;
-    };
-    
-    const startStopKey = convertKey(currentHotkeys.startStop);
-    const resetKey = convertKey(currentHotkeys.reset);
-    
-    // Register start/stop hotkey
-    const startStopSuccess = globalShortcut.register(startStopKey, () => {
-      console.log('Global hotkey: Start/Stop triggered');
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('global-hotkey', 'startStop');
-      }
-    });
-    console.log(`Registered Start/Stop hotkey (${startStopKey}):`, startStopSuccess);
-    
-    // Register reset hotkey
-    const resetSuccess = globalShortcut.register(resetKey, () => {
-      console.log('Global hotkey: Reset triggered');
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('global-hotkey', 'reset');
-      }
-    });
-    console.log(`Registered Reset hotkey (${resetKey}):`, resetSuccess);
-  } catch (err) {
-    console.error('Failed to register global hotkeys:', err);
-  }
-}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
