@@ -196,7 +196,7 @@
        TRANSPARENT MODE
        ============================================ */
     body.transparent {
-      background: var(--background-transparent);
+      background: transparent;
     }
 
     body.transparent .container {
@@ -204,8 +204,35 @@
     }
 
     body.transparent .title-bar {
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom-color: rgba(0, 255, 136, 0.1);
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    body.transparent .title-text {
+      display: none;
+    }
+
+    body.transparent .control-btn {
+      background: transparent;
+      box-shadow: none;
+      border: none;
+    }
+
+    body.transparent .control-btn:hover {
+      background: rgba(0, 150, 200, 0.3);
+      box-shadow: none;
+    }
+
+    body.transparent .close-btn {
+      background: transparent;
+      box-shadow: none;
+      border: none;
+    }
+
+    body.transparent .close-btn:hover {
+      background: rgba(255, 80, 80, 0.3);
+      box-shadow: none;
     }
 
     /* ============================================
