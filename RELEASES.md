@@ -1,10 +1,10 @@
 # VD Clock Map Overlay - Release Guide
 
-## Current Version: 1.0.0
+## Current Version: 1.0.1
 
 ### 📦 Distribution Package
 
-The `releases/VD-Clock-Map-Overlay-v1.0.0/` folder contains the complete portable application ready for distribution.
+The `releases/VD-Clock-Map-Overlay-v1.0.1/` folder contains the complete portable application ready for distribution.
 
 **File**: `VD Clock Map Overlay.exe` (180+ MB portable executable)
 

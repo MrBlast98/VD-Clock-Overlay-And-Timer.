@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-03-14
+
+### Added
+- **Auto-Update Popout Maps**: When map overlay windows are popped out, they now automatically update when you switch maps in the main window
+  - Real-time map synchronization across all popout windows
+  - Each popout maintains its own window state while staying in sync
+  - Seamless experience when multitasking with multiple maps
+
 ## [1.0.0] - 2026-03-14
 
 ### Added

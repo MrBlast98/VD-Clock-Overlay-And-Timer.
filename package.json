@@ -1,6 +1,6 @@
 {
   "name": "vd-clock-map-overlay",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Violence District Clock System Map Overlay - Competitive 1V1 Timer",
   "main": "main.js",
   "homepage": "https://github.com/MrBlast98/VD-Clock-Overlay-And-Timer",
@@ -26,6 +26,7 @@
       "main.js",
       "preload.js",
       "timer-preload.js",
+      "popout-preload.js",
       "renderer.js",
       "index.html",
       "timer-popout.html",
