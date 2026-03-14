@@ -26,6 +26,7 @@
       --button-danger: rgba(255, 80, 80, 0.8);
       --button-danger-hover: rgba(255, 100, 100, 1);
       --transition-speed: 0.2s;
+      --score-color: #0099ff;
     }
 
     html, body {
@@ -37,6 +38,7 @@
 
     body {
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: var(--background-primary);
@@ -166,7 +168,7 @@
     }
 
     /* ============================================
-       CONTAINER & DISPLAY
+       MAIN CONTAINER
        ============================================ */
     .container {
       width: 100%;
@@ -181,21 +183,85 @@
       pointer-events: auto;
     }
 
+    /* ============================================
+       DUAL TIMER LAYOUT
+       ============================================ */
+    .dual-timer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      width: 100%;
+    }
+
+    .player-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .player-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .player-name:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .player-name.editing {
+      background: rgba(0, 150, 200, 0.3);
+    }
+
     .timer-display {
-      font-size: clamp(28px, 15vw, 100px);
+      font-size: 48px;
       font-weight: 700;
       text-align: center;
       color: var(--accent-color);
       font-family: 'Courier New', 'Monaco', monospace;
       text-shadow: 0 0 30px var(--accent-glow);
       letter-spacing: 2px;
-      flex-shrink: 0;
-      min-width: 0;
+      min-width: 150px;
       -webkit-app-region: no-drag;
       cursor: default;
       user-select: none;
       -webkit-user-select: none;
       line-height: 1.2;
+    }
+
+    /* ============================================
+       SCORE SECTION
+       ============================================ */
+    .score-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-display {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--score-color);
+      letter-spacing: 2px;
+      text-shadow: 0 0 20px rgba(0, 153, 255, 0.5);
+      font-family: 'Courier New', 'Monaco', monospace;
+    }
+
+    .score-accent {
+      height: 3px;
+      width: 80px;
+      background: linear-gradient(90deg, transparent, var(--score-color), transparent);
+      border-radius: 2px;
     }
 
     /* ============================================
@@ -255,352 +321,221 @@
   <div class="title-bar">
     <span class="title-text">VD CLOCK - MATCH TIMER</span>
     <div class="controls">
+      <button class="control-btn" id="resetScoreBtn" title="Reset scores" aria-label="Reset scores">↻</button>
       <button class="control-btn" id="transparentBtn" title="Toggle transparent background" aria-label="Toggle transparent background">👁️</button>
       <button class="close-btn" id="closeBtn" title="Close timer window" aria-label="Close timer window">✕</button>
     </div>
   </div>
   
   <div class="container">
-    <div class="timer-display" id="timerDisplay">0.00</div>
+    <div class="dual-timer">
+      <!-- Player 1 -->
+      <div class="player-section">
+        <div class="player-name" id="player1Name" title="Click to edit">PLAYER 1</div>
+        <div class="timer-display" id="player1Timer">0.00</div>
+      </div>
+
+      <!-- Score Section -->
+      <div class="score-section">
+        <div class="score-display" id="scoreDisplay">0 — 0</div>
+        <div class="score-accent"></div>
+      </div>
+
+      <!-- Player 2 -->
+      <div class="player-section">
+        <div class="player-name" id="player2Name" title="Click to edit">PLAYER 2</div>
+        <div class="timer-display" id="player2Timer">0.00</div>
+      </div>
+    </div>
   </div>
 
   <style id="dynamicStyles"></style>
 
   <script>
     // ============================================
-    // Configuration & Constants
-    // ============================================
-    const CONFIG = {
-      STATE_DEBOUNCE_MS: 500,
-      DEFAULT_COLOR: '#00ff88',
-      DEFAULT_STYLE: 'classic',
-      STORAGE_KEYS: {
-        TIMER_STYLE: 'timerStyle',
-        TIMER_COLOR: 'timerColorHex',
-        TIMER_TRANSPARENT: 'timerTransparent'
-      }
-    };
-
-    // ============================================
     // State Management
     // ============================================
     const state = {
-      allowClose: false,
-      currentStyle: localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_STYLE) || CONFIG.DEFAULT_STYLE,
-      currentColor: localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_COLOR) || CONFIG.DEFAULT_COLOR,
-      isTransparent: localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_TRANSPARENT) === 'true',
-      stateRequestTimeout: null
+      timerTimeMs: 0,
+      isRunning: false,
+      isTransparent: localStorage.getItem('timerTransparent') === 'true',
+      currentColor: localStorage.getItem('timerColorHex') || '#00ff88',
+      player1Name: localStorage.getItem('player1Name') || 'PLAYER 1',
+      player2Name: localStorage.getItem('player2Name') || 'PLAYER 2',
+      player1Score: parseInt(localStorage.getItem('player1Score')) || 0,
+      player2Score: parseInt(localStorage.getItem('player2Score')) || 0,
     };
 
-    // ============================================
-    // DOM Elements Cache
-    // ============================================
-    const elements = {
-      timerDisplay: null,
-      closeBtn: null,
-      transparentBtn: null,
-      dynamicStyles: null
-    };
+    const elements = {};
 
-    /**
-     * Initialize DOM element references
-     */
+    // ============================================
+    // Initialization
+    // ============================================
     function initElements() {
-      elements.timerDisplay = document.getElementById('timerDisplay');
+      elements.player1Name = document.getElementById('player1Name');
+      elements.player2Name = document.getElementById('player2Name');
+      elements.player1Timer = document.getElementById('player1Timer');
+      elements.player2Timer = document.getElementById('player2Timer');
+      elements.scoreDisplay = document.getElementById('scoreDisplay');
       elements.closeBtn = document.getElementById('closeBtn');
       elements.transparentBtn = document.getElementById('transparentBtn');
-      elements.dynamicStyles = document.getElementById('dynamicStyles');
+      elements.resetScoreBtn = document.getElementById('resetScoreBtn');
+  elements.dynamicStyles = document.getElementById('dynamicStyles');
+    }
 
-      if (!elements.timerDisplay || !elements.closeBtn || !elements.transparentBtn) {
-        console.error('Failed to initialize DOM elements');
+    function updatePlayerNames() {
+      if (elements.player1Name) elements.player1Name.textContent = state.player1Name;
+      if (elements.player2Name) elements.player2Name.textContent = state.player2Name;
+    }
+
+    function updateScoreDisplay() {
+      if (elements.scoreDisplay) {
+        elements.scoreDisplay.textContent = `${state.player1Score} — ${state.player2Score}`;
+      }
+    }
+
+    function formatTime(ms) {
+      const seconds = Math.floor(ms / 1000);
+      const centiseconds = Math.floor((ms % 1000) / 10);
+      return `${seconds}.${String(centiseconds).padStart(2, '0')}`;
+    }
+
+    // ============================================
+    // Timer Updates
+    // ============================================
+    function setupTimerUpdateListener() {
+      if (window.timerApi?.onTimerUpdate) {
+        window.timerApi.onTimerUpdate((data) => {
+          state.timerTimeMs = data.timeMs;
+          state.isRunning = data.isRunning;
+          
+          // Both players use same timer for now
+          const timeStr = formatTime(data.timeMs);
+          if (elements.player1Timer) elements.player1Timer.textContent = timeStr;
+          if (elements.player2Timer) elements.player2Timer.textContent = timeStr;
+        });
+      }
+    }
+
+    function setupStyleUpdateListener() {
+      if (window.timerApi?.onStyleUpdate) {
+        window.timerApi.onStyleUpdate((data) => {
+          if (data.color) {
+            state.currentColor = data.color;
+            updateDynamicStyles();
+          }
+        });
       }
     }
 
     // ============================================
-    // Event Handlers
+    // Dynamic Styling
     // ============================================
-
-    /**
-     * Handle close button click
-     * @param {Event} e - Click event
-     */
-    function handleCloseClick(e) {
-      try {
-        e.stopPropagation();
-        e.preventDefault();
-        state.allowClose = true;
-        window.close();
-      } catch (error) {
-        console.error('Error closing window:', error);
-      }
-    }
-
-    /**
-     * Handle transparency toggle button click
-     * @param {Event} e - Click event
-     */
-    function handleTransparentClick(e) {
-      try {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        document.body.classList.toggle('transparent');
-        state.isTransparent = document.body.classList.contains('transparent');
-        
-        localStorage.setItem(
-          CONFIG.STORAGE_KEYS.TIMER_TRANSPARENT,
-          state.isTransparent ? 'true' : 'false'
-        );
-        
-        updateTransparentButtonStyle();
-      } catch (error) {
-        console.error('Error toggling transparency:', error);
-      }
-    }
-
-    /**
-     * Update transparent button appearance based on state
-     */
-    function updateTransparentButtonStyle() {
-      if (!elements.transparentBtn) return;
-      
-      elements.transparentBtn.style.background = state.isTransparent
-        ? 'rgba(0, 255, 136, 0.7)'
-        : 'rgba(0, 150, 200, 0.8)';
-    }
-
-    /**
-     * Handle window unload event
-     * Prevent accidental closing except via close button
-     * @param {BeforeUnloadEvent} e - Unload event
-     */
-    function handleBeforeUnload(e) {
-      if (!state.allowClose) {
-        e.preventDefault();
-        e.returnValue = '';
-        return false;
-      }
-    }
-
-    // ============================================
-    // Timer Display Update
-    // ============================================
-
-    /**
-     * Format milliseconds into display string
-     * @param {number} milliseconds - Time in milliseconds
-     * @returns {string} Formatted time string
-     */
-    function formatTime(milliseconds) {
-      const totalSeconds = Math.floor(milliseconds / 1000);
-      const centiseconds = Math.floor((milliseconds % 1000) / 10);
-      
-      if (totalSeconds >= 60) {
-        const minutes = Math.floor(totalSeconds / 60);
-        const secs = totalSeconds % 60;
-        return `${minutes}:${String(secs).padStart(2, '0')}`;
-      }
-      
-      return `${totalSeconds}.${String(centiseconds).padStart(2, '0')}`;
-    }
-
-    /**
-     * Update timer display with new time
-     * @param {number} milliseconds - Time in milliseconds
-     */
-    function updateDisplay(milliseconds) {
-      try {
-        if (!elements.timerDisplay) return;
-        elements.timerDisplay.textContent = formatTime(milliseconds);
-      } catch (error) {
-        console.error('Error updating display:', error);
-      }
-    }
-
-    // ============================================
-    // Style Management
-    // ============================================
-
-    /**
-     * Update dynamic CSS styles based on current color
-     */
     function updateDynamicStyles() {
-      if (!elements.dynamicStyles) return;
-      
-      const color = state.currentColor;
-      
-      elements.dynamicStyles.textContent = `
+      const dynamicStyle = document.getElementById('dynamicStyles');
+      if (!dynamicStyle) return;
+
+      const glowColor = state.currentColor + '99';
+      dynamicStyle.textContent = `
+        :root {
+          --accent-color: ${state.currentColor};
+          --accent-glow: ${state.currentColor}99;
+        }
         .timer-display {
-          color: ${color};
-          text-shadow: 0 0 30px ${color}33;
-        }
-
-        .timer-display.style-cyber {
-          text-shadow: 
-            0 0 10px ${color},
-            0 0 20px ${color},
-            0 0 30px ${color},
-            0 0 40px ${color},
-            0 0 50px ${color};
-          animation: cyber-glow 0.5s ease-in-out infinite;
-        }
-
-        @keyframes cyber-glow {
-          0%, 100% { filter: brightness(1); }
-          50% { filter: brightness(1.3); }
-        }
-
-        .timer-display.style-glitch {
-          text-shadow: 
-            2px 0 ${color},
-            -2px 0 ${color},
-            0 0 20px ${color};
-          animation: glitch 0.15s infinite;
-        }
-
-        @keyframes glitch {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-2px); }
-          40% { transform: translateX(2px); }
-          60% { transform: translateX(-2px); }
-          80% { transform: translateX(2px); }
-        }
-
-        .timer-display.style-retro {
-          text-shadow: 0 0 15px ${color};
-          animation: arcade-pulse 0.4s steps(2) infinite;
-        }
-
-        @keyframes arcade-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.6; }
-        }
-
-        .timer-display.style-minimal {
-          text-shadow: none;
-          filter: brightness(0.8);
+          color: ${state.currentColor};
+          text-shadow: 0 0 30px ${glowColor};
         }
       `;
     }
 
-    /**
-     * Apply timer style with animation restart
-     * @param {string} styleName - Name of style to apply
-     */
-    function applyStyle(styleName) {
-      try {
-        if (!elements.timerDisplay) return;
-        
-        // Update dynamic styles first
-        updateDynamicStyles();
-        
-        // Remove all style classes
-        elements.timerDisplay.classList.remove(
-          'style-cyber',
-          'style-glitch',
-          'style-retro',
-          'style-minimal'
-        );
-        
-        // Force reflow to restart animations
-        void elements.timerDisplay.offsetHeight;
-        
-        // Apply new style if not classic
-        if (styleName && styleName !== 'classic') {
-          elements.timerDisplay.classList.add(`style-${styleName}`);
+    // ============================================
+    // Player Name Editing
+    // ============================================
+    function setupPlayerNameEditing() {
+      elements.player1Name?.addEventListener('click', () => editPlayerName(1));
+      elements.player2Name?.addEventListener('click', () => editPlayerName(2));
+    }
+
+    function editPlayerName(playerNum) {
+      const element = playerNum === 1 ? elements.player1Name : elements.player2Name;
+      const currentName = playerNum === 1 ? state.player1Name : state.player2Name;
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentName;
+      input.style.cssText = `
+        font-size: 14px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border: 1px solid rgba(0, 150, 200, 0.5);
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        border-radius: 4px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: center;
+      `;
+      
+      element.textContent = '';
+      element.appendChild(input);
+      input.focus();
+      input.select();
+
+      const finishEdit = () => {
+        const newName = input.value.trim() || currentName;
+        if (playerNum === 1) {
+          state.player1Name = newName;
+          localStorage.setItem('player1Name', newName);
+        } else {
+          state.player2Name = newName;
+          localStorage.setItem('player2Name', newName);
         }
-        
-        state.currentStyle = styleName;
-      } catch (error) {
-        console.error('Error applying style:', error);
-      }
+        updatePlayerNames();
+      };
+
+      input.addEventListener('blur', finishEdit);
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') finishEdit();
+      });
     }
 
     // ============================================
-    // IPC Communication
+    // Score Management
     // ============================================
+    function resetScores() {
+      state.player1Score = 0;
+      state.player2Score = 0;
+      localStorage.setItem('player1Score', '0');
+      localStorage.setItem('player2Score', '0');
+      updateScoreDisplay();
+    }
 
-    /**
-     * Setup IPC listener for timer updates
-     */
-    function setupTimerUpdateListener() {
-      if (!window.timerApi?.onTimerUpdate) {
-        console.warn('Timer API not available for updates');
-        return;
-      }
+    // ============================================
+    // Button Handlers
+    // ============================================
+    function handleCloseClick() {
+      if (window.close) window.close();
+    }
+
+    function handleTransparentClick() {
+      state.isTransparent = !state.isTransparent;
+      document.body.classList.toggle('transparent');
+      localStorage.setItem('timerTransparent', state.isTransparent);
       
-      try {
-        window.timerApi.onTimerUpdate((data) => {
-          if (typeof data.milliseconds === 'number') {
-            updateDisplay(data.milliseconds);
-          }
+      if (window.timerApi?.updateTimerStyle) {
+        window.timerApi.updateTimerStyle({
+          isTransparent: state.isTransparent
         });
-      } catch (error) {
-        console.error('Error setting up timer update listener:', error);
       }
     }
 
-    /**
-     * Setup IPC listener for style/color updates
-     */
-    function setupStyleUpdateListener() {
-      if (!window.timerApi?.onStyleUpdate) {
-        console.warn('Timer API not available for style updates');
-        return;
-      }
-      
-      try {
-        window.timerApi.onStyleUpdate((data) => {
-          const style = data.style || state.currentStyle;
-          const color = data.color || state.currentColor;
-          
-          if (data.style) {
-            localStorage.setItem(CONFIG.STORAGE_KEYS.TIMER_STYLE, data.style);
-            applyStyle(style);
-          }
-          
-          if (data.color) {
-            localStorage.setItem(CONFIG.STORAGE_KEYS.TIMER_COLOR, data.color);
-            state.currentColor = color;
-            updateDynamicStyles();
-          }
-        });
-      } catch (error) {
-        console.error('Error setting up style update listener:', error);
-      }
-    }
-
-    /**
-     * Request timer state from main process
-     */
-    function requestTimerState() {
-      if (!window.timerApi?.requestTimerState) {
-        return;
-      }
-      
-      try {
-        window.timerApi.requestTimerState();
-      } catch (error) {
-        console.error('Error requesting timer state:', error);
-      }
-    }
-
-    /**
-     * Setup periodic timer state requests
-     */
-    function setupStateRequests() {
-      state.stateRequestTimeout = setInterval(() => {
-        requestTimerState();
-      }, CONFIG.STATE_DEBOUNCE_MS);
+    function handleResetScoreClick() {
+      resetScores();
     }
 
     // ============================================
     // Window Dragging
     // ============================================
-
-    /**
-     * Setup window dragging via title bar
-     */
     function setupWindowDragging() {
       const titleBar = document.querySelector('.title-bar');
       if (!titleBar) return;
@@ -610,6 +545,8 @@
       let dragStartY = 0;
 
       titleBar.addEventListener('mousedown', (e) => {
+        // Don't drag if clicking on buttons
+        if (e.target.closest('.controls')) return;
         isDragging = true;
         dragStartX = e.clientX;
         dragStartY = e.clientY;
@@ -621,7 +558,6 @@
         const deltaX = e.clientX - dragStartX;
         const deltaY = e.clientY - dragStartY;
 
-        // Send drag delta to main process
         if (window.timerApi?.moveWindow) {
           window.timerApi.moveWindow(deltaX, deltaY);
         }
@@ -636,26 +572,20 @@
     }
 
     // ============================================
-    // Initialization
+    // Main Initialization
     // ============================================
-
-    /**
-     * Initialize the timer window
-     */
     function initialize() {
       try {
-        // Initialize DOM elements
         initElements();
         
         // Apply saved settings
         if (state.isTransparent) {
           document.body.classList.add('transparent');
         }
-        updateTransparentButtonStyle();
         
-        // Setup styles
+        updatePlayerNames();
+        updateScoreDisplay();
         updateDynamicStyles();
-        applyStyle(state.currentStyle);
         
         // Setup event listeners
         if (elements.closeBtn) {
@@ -664,18 +594,14 @@
         if (elements.transparentBtn) {
           elements.transparentBtn.addEventListener('click', handleTransparentClick);
         }
-        window.addEventListener('beforeunload', handleBeforeUnload);
+        if (elements.resetScoreBtn) {
+          elements.resetScoreBtn.addEventListener('click', handleResetScoreClick);
+        }
         
-        // Setup window dragging
+        setupPlayerNameEditing();
         setupWindowDragging();
-        
-        // Setup IPC listeners
         setupTimerUpdateListener();
         setupStyleUpdateListener();
-        setupStateRequests();
-        
-        // Request initial state
-        requestTimerState();
         
         console.log('Timer window initialized successfully');
       } catch (error) {
