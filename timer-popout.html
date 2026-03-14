@@ -265,6 +265,55 @@
     }
 
     /* ============================================
+       TIMER CONTROLS
+       ============================================ */
+    .timer-controls {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .player-section:hover .timer-controls {
+      opacity: 1;
+    }
+
+    .timer-btn {
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 3px;
+      background: rgba(0, 150, 200, 0.6);
+      color: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      padding: 0;
+      -webkit-app-region: no-drag;
+      pointer-events: auto !important;
+      outline: none;
+      user-select: none;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    .timer-btn:hover {
+      background: rgba(0, 150, 200, 0.9);
+      transform: scale(1.05);
+    }
+
+    .timer-btn:active {
+      transform: scale(0.95);
+    }
+
+    .timer-btn.active {
+      background: rgba(0, 200, 136, 0.8);
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+    }
+
+    /* ============================================
        TRANSPARENT MODE
        ============================================ */
     body.transparent {
@@ -333,6 +382,10 @@
       <div class="player-section">
         <div class="player-name" id="player1Name" title="Click to edit">PLAYER 1</div>
         <div class="timer-display" id="player1Timer">0.00</div>
+        <div class="timer-controls">
+          <button class="timer-btn" id="player1StartBtn" title="Start Player 1 timer">▶</button>
+          <button class="timer-btn" id="player1StopBtn" title="Stop Player 1 timer">⏹</button>
+        </div>
       </div>
 
       <!-- Score Section -->
@@ -345,6 +398,10 @@
       <div class="player-section">
         <div class="player-name" id="player2Name" title="Click to edit">PLAYER 2</div>
         <div class="timer-display" id="player2Timer">0.00</div>
+        <div class="timer-controls">
+          <button class="timer-btn" id="player2StartBtn" title="Start Player 2 timer">▶</button>
+          <button class="timer-btn" id="player2StopBtn" title="Stop Player 2 timer">⏹</button>
+        </div>
       </div>
     </div>
   </div>
@@ -356,8 +413,10 @@
     // State Management
     // ============================================
     const state = {
-      timerTimeMs: 0,
-      isRunning: false,
+      player1TimeMs: 0,
+      player2TimeMs: 0,
+      player1Running: false,
+      player2Running: false,
       isTransparent: localStorage.getItem('timerTransparent') === 'true',
       currentColor: localStorage.getItem('timerColorHex') || '#00ff88',
       player1Name: localStorage.getItem('player1Name') || 'PLAYER 1',
@@ -380,7 +439,11 @@
       elements.closeBtn = document.getElementById('closeBtn');
       elements.transparentBtn = document.getElementById('transparentBtn');
       elements.resetScoreBtn = document.getElementById('resetScoreBtn');
-  elements.dynamicStyles = document.getElementById('dynamicStyles');
+      elements.dynamicStyles = document.getElementById('dynamicStyles');
+      elements.player1StartBtn = document.getElementById('player1StartBtn');
+      elements.player1StopBtn = document.getElementById('player1StopBtn');
+      elements.player2StartBtn = document.getElementById('player2StartBtn');
+      elements.player2StopBtn = document.getElementById('player2StopBtn');
     }
 
     function updatePlayerNames() {
@@ -406,13 +469,29 @@
     function setupTimerUpdateListener() {
       if (window.timerApi?.onTimerUpdate) {
         window.timerApi.onTimerUpdate((data) => {
-          state.timerTimeMs = data.timeMs;
-          state.isRunning = data.isRunning;
+          // Support both single timer and dual timer updates
+          if (data.player1TimeMs !== undefined) {
+            state.player1TimeMs = data.player1TimeMs;
+            state.player1Running = data.player1Running || false;
+            const timeStr = formatTime(data.player1TimeMs);
+            if (elements.player1Timer) elements.player1Timer.textContent = timeStr;
+          }
           
-          // Both players use same timer for now
-          const timeStr = formatTime(data.timeMs);
-          if (elements.player1Timer) elements.player1Timer.textContent = timeStr;
-          if (elements.player2Timer) elements.player2Timer.textContent = timeStr;
+          if (data.player2TimeMs !== undefined) {
+            state.player2TimeMs = data.player2TimeMs;
+            state.player2Running = data.player2Running || false;
+            const timeStr = formatTime(data.player2TimeMs);
+            if (elements.player2Timer) elements.player2Timer.textContent = timeStr;
+          }
+          
+          // Legacy single timer support
+          if (data.timeMs !== undefined && data.player1TimeMs === undefined) {
+            state.player1TimeMs = data.timeMs;
+            state.player2TimeMs = data.timeMs;
+            const timeStr = formatTime(data.timeMs);
+            if (elements.player1Timer) elements.player1Timer.textContent = timeStr;
+            if (elements.player2Timer) elements.player2Timer.textContent = timeStr;
+          }
         });
       }
     }
@@ -533,6 +612,72 @@
       resetScores();
     }
 
+    function handlePlayer1Start() {
+      if (window.timerApi?.startPlayerTimer) {
+        window.timerApi.startPlayerTimer(1);
+        state.player1Running = true;
+        updateButtonStates();
+      }
+    }
+
+    function handlePlayer1Stop() {
+      if (window.timerApi?.stopPlayerTimer) {
+        window.timerApi.stopPlayerTimer(1);
+        state.player1Running = false;
+        updateButtonStates();
+        checkAutoScore();
+      }
+    }
+
+    function handlePlayer2Start() {
+      if (window.timerApi?.startPlayerTimer) {
+        window.timerApi.startPlayerTimer(2);
+        state.player2Running = true;
+        updateButtonStates();
+      }
+    }
+
+    function handlePlayer2Stop() {
+      if (window.timerApi?.stopPlayerTimer) {
+        window.timerApi.stopPlayerTimer(2);
+        state.player2Running = false;
+        updateButtonStates();
+        checkAutoScore();
+      }
+    }
+
+    function updateButtonStates() {
+      if (elements.player1StartBtn) {
+        elements.player1StartBtn.classList.toggle('active', state.player1Running);
+      }
+      if (elements.player2StartBtn) {
+        elements.player2StartBtn.classList.toggle('active', state.player2Running);
+      }
+    }
+
+    // ============================================
+    // Auto-Scoring
+    // ============================================
+    function checkAutoScore() {
+      // Only check when both are stopped
+      if (state.player1Running || state.player2Running) return;
+      
+      const timeDiff = state.player1TimeMs - state.player2TimeMs;
+      
+      // Award point if there's a time difference
+      if (timeDiff > 0) {
+        state.player1Score++;
+        localStorage.setItem('player1Score', state.player1Score);
+        updateScoreDisplay();
+        console.log(`${state.player1Name} gets a point!`);
+      } else if (timeDiff < 0) {
+        state.player2Score++;
+        localStorage.setItem('player2Score', state.player2Score);
+        updateScoreDisplay();
+        console.log(`${state.player2Name} gets a point!`);
+      }
+    }
+
     // ============================================
     // Window Dragging
     // ============================================
@@ -598,6 +743,21 @@
           elements.resetScoreBtn.addEventListener('click', handleResetScoreClick);
         }
         
+        // Setup player timer buttons
+        if (elements.player1StartBtn) {
+          elements.player1StartBtn.addEventListener('click', handlePlayer1Start);
+        }
+        if (elements.player1StopBtn) {
+          elements.player1StopBtn.addEventListener('click', handlePlayer1Stop);
+        }
+        if (elements.player2StartBtn) {
+          elements.player2StartBtn.addEventListener('click', handlePlayer2Start);
+        }
+        if (elements.player2StopBtn) {
+          elements.player2StopBtn.addEventListener('click', handlePlayer2Stop);
+        }
+        
+        updateButtonStates();
         setupPlayerNameEditing();
         setupWindowDragging();
         setupTimerUpdateListener();

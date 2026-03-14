@@ -8,6 +8,56 @@ let mainWindow = null;
 let timerState = { seconds: 0, running: false };
 let currentHotkeys = { startStop: ' ', reset: 'r' };
 
+// Separate timers for each player
+let player1Timer = {
+  timeMs: 0,
+  running: false,
+  interval: null
+};
+
+let player2Timer = {
+  timeMs: 0,
+  running: false,
+  interval: null
+};
+
+function startPlayerTimer(playerNum) {
+  const timer = playerNum === 1 ? player1Timer : player2Timer;
+  
+  if (timer.running) return;
+  
+  timer.running = true;
+  const startTime = Date.now() - timer.timeMs;
+  
+  timer.interval = setInterval(() => {
+    timer.timeMs = Date.now() - startTime;
+    broadcastTimerState();
+  }, 16); // ~60 FPS updates
+}
+
+function stopPlayerTimer(playerNum) {
+  const timer = playerNum === 1 ? player1Timer : player2Timer;
+  
+  if (timer.interval) {
+    clearInterval(timer.interval);
+    timer.interval = null;
+  }
+  
+  timer.running = false;
+  broadcastTimerState();
+}
+
+function broadcastTimerState() {
+  if (timerPopOutWindow && !timerPopOutWindow.isDestroyed()) {
+    timerPopOutWindow.webContents.send('timer-update', {
+      player1TimeMs: player1Timer.timeMs,
+      player1Running: player1Timer.running,
+      player2TimeMs: player2Timer.timeMs,
+      player2Running: player2Timer.running
+    });
+  }
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -96,7 +146,12 @@ function createTimerPopOutWindow() {
 
 // Handle timer updates for pop-out
 ipcMain.on('timer-state-request', (event) => {
-  event.reply('timer-update', timerState);
+  event.reply('timer-update', {
+    player1TimeMs: player1Timer.timeMs,
+    player1Running: player1Timer.running,
+    player2TimeMs: player2Timer.timeMs,
+    player2Running: player2Timer.running
+  });
 });
 
 ipcMain.on('update-timer-state', (event, state) => {
@@ -113,6 +168,17 @@ ipcMain.on('move-timer-window', (event, { deltaX, deltaY }) => {
     const [x, y] = timerPopOutWindow.getPosition();
     timerPopOutWindow.setPosition(Math.round(x + deltaX), Math.round(y + deltaY));
   }
+});
+
+// Handle individual player timer controls
+ipcMain.on('start-player-timer', (event, { playerNum }) => {
+  startPlayerTimer(playerNum);
+  console.log(`Player ${playerNum} timer started`);
+});
+
+ipcMain.on('stop-player-timer', (event, { playerNum }) => {
+  stopPlayerTimer(playerNum);
+  console.log(`Player ${playerNum} timer stopped`);
 });
 
 app.on('ready', () => {

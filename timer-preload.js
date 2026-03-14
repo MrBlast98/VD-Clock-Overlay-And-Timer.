@@ -16,5 +16,14 @@ contextBridge.exposeInMainWorld('timerApi', {
   },
   moveWindow: (deltaX, deltaY) => {
     ipcRenderer.send('move-timer-window', { deltaX, deltaY });
+  },
+  startPlayerTimer: (playerNum) => {
+    ipcRenderer.send('start-player-timer', { playerNum });
+  },
+  stopPlayerTimer: (playerNum) => {
+    ipcRenderer.send('stop-player-timer', { playerNum });
+  },
+  updateTimerStyle: (style) => {
+    ipcRenderer.send('update-timer-style', style);
   }
 });
