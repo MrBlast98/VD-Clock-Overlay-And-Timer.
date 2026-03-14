@@ -6,6 +6,8 @@ npm-debug.log*
 dist/
 build/
 .DS_Store
+package-lock.json
+yarn.lock
 
 # Source code files - keep documentation only
 *.js
