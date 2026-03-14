@@ -729,6 +729,132 @@ body {
   box-shadow: 0 0 15px rgba(255, 109, 109, 0.6);
 }
 
+/* Dual Timer Main Window Styles */
+.dual-timer-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin-bottom: 20px;
+}
+
+.player-section-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.player-name-main {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.player-name-main:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.player-name-main.active {
+  border: 2px solid #00ff88;
+  background: rgba(0, 255, 136, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.timer-display-main {
+  font-size: 32px;
+  font-weight: 700;
+  text-align: center;
+  color: #00ff88;
+  font-family: 'Courier New', 'Monaco', monospace;
+  text-shadow: 0 0 20px rgba(0, 255, 136, 0.6);
+  letter-spacing: 2px;
+  min-width: 120px;
+  user-select: none;
+}
+
+.timer-controls-main {
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.player-section-main:hover .timer-controls-main {
+  opacity: 1;
+}
+
+.timer-btn-main {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 3px;
+  background: rgba(0, 150, 200, 0.6);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  outline: none;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.timer-btn-main:hover {
+  background: rgba(0, 150, 200, 0.9);
+  transform: scale(1.05);
+}
+
+.timer-btn-main:active {
+  transform: scale(0.95);
+}
+
+.timer-btn-main.active {
+  background: rgba(0, 200, 136, 0.8);
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+}
+
+.score-section-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-display-main {
+  font-size: 32px;
+  font-weight: 700;
+  color: #0099ff;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px rgba(0, 153, 255, 0.5);
+  font-family: 'Courier New', 'Monaco', monospace;
+}
+
+.score-accent-main {
+  height: 3px;
+  width: 80px;
+  background: linear-gradient(90deg, transparent, #0099ff, transparent);
+  border-radius: 2px;
+}
+
+.hotkey-info {
+  text-align: center;
+  font-size: 11px;
+  color: #888;
+  margin-top: 10px;
+}
+
 /* Settings Panel Styles */
 .settings-panel {
   display: flex;

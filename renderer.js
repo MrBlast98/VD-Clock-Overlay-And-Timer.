@@ -36,14 +36,22 @@ const state = {
   images: [],
   selectedImageIndex: null,
 
-  // Timer state
-  timerRunning: false,
-  timerMilliseconds: 0,
-  timerIntervalId: null,
+  // Dual Timer state
+  player1TimeMs: 0,
+  player1Running: false,
+  player1IntervalId: null,
+  
+  player2TimeMs: 0,
+  player2Running: false,
+  player2IntervalId: null,
+  
+  activePlayer: 1,
 
   // Score state
   player1Score: 0,
   player2Score: 0,
+  player1Name: localStorage.getItem('player1Name') || 'PLAYER 1',
+  player2Name: localStorage.getItem('player2Name') || 'PLAYER 2',
 
   // Hotkey state
   customHotkeys: { ...CONFIG.DEFAULT_HOTKEYS },
@@ -61,10 +69,16 @@ const DOM = {
   popoutBtn: null,
 
   // 1V1 section
-  timerDisplay: null,
-  timerStartBtn: null,
-  timerStopBtn: null,
-  timerResetBtn: null,
+  player1NameMain: null,
+  player2NameMain: null,
+  player1TimerMain: null,
+  player2TimerMain: null,
+  scoreDisplayMain: null,
+  player1StartMain: null,
+  player1StopMain: null,
+  player2StartMain: null,
+  player2StopMain: null,
+  resetScoreBtnMain: null,
   timerPopoutBtn: null,
 
   // Style selector
@@ -135,10 +149,16 @@ function cacheDOM() {
   DOM.popoutBtn = document.getElementById('popoutBtn');
 
   // 1V1 section
-  DOM.timerDisplay = document.getElementById('timerDisplay');
-  DOM.timerStartBtn = document.getElementById('timerStartBtn');
-  DOM.timerStopBtn = document.getElementById('timerStopBtn');
-  DOM.timerResetBtn = document.getElementById('timerResetBtn');
+  DOM.player1NameMain = document.getElementById('player1NameMain');
+  DOM.player2NameMain = document.getElementById('player2NameMain');
+  DOM.player1TimerMain = document.getElementById('player1TimerMain');
+  DOM.player2TimerMain = document.getElementById('player2TimerMain');
+  DOM.scoreDisplayMain = document.getElementById('scoreDisplayMain');
+  DOM.player1StartMain = document.getElementById('player1StartMain');
+  DOM.player1StopMain = document.getElementById('player1StopMain');
+  DOM.player2StartMain = document.getElementById('player2StartMain');
+  DOM.player2StopMain = document.getElementById('player2StopMain');
+  DOM.resetScoreBtnMain = document.getElementById('resetScoreBtnMain');
   DOM.timerPopoutBtn = document.getElementById('timerPopoutBtn');
 
   // Style selector
@@ -394,6 +414,7 @@ function setup1V1() {
     setupStyleSelector();
     setupColorSelector();
     setupScoreButtons();
+    setupEditablePlayerNames();
     loadSavedTimerSettings();
   } catch (error) {
     console.error('Error in setup1V1:', error);
@@ -404,45 +425,25 @@ function setup1V1() {
  * Setup timer control buttons
  */
 function setupTimerButtons() {
-  if (DOM.timerStartBtn) DOM.timerStartBtn.addEventListener('click', toggleTimer);
-  if (DOM.timerStopBtn) DOM.timerStopBtn.addEventListener('click', stopTimer);
-  if (DOM.timerResetBtn) DOM.timerResetBtn.addEventListener('click', resetTimer);
+  if (DOM.player1StartMain) DOM.player1StartMain.addEventListener('click', () => startPlayerTimer(1));
+  if (DOM.player1StopMain) DOM.player1StopMain.addEventListener('click', () => stopPlayerTimer(1));
+  if (DOM.player2StartMain) DOM.player2StartMain.addEventListener('click', () => startPlayerTimer(2));
+  if (DOM.player2StopMain) DOM.player2StopMain.addEventListener('click', () => stopPlayerTimer(2));
+  if (DOM.resetScoreBtnMain) DOM.resetScoreBtnMain.addEventListener('click', resetScores);
   if (DOM.timerPopoutBtn) {
     DOM.timerPopoutBtn.addEventListener('click', () => {
       window.api?.popoutTimer();
     });
   }
   
-  document.addEventListener('keydown', handleHotkeys);
+  document.addEventListener('keydown', handleTimerHotkeys);
 }
 
 /**
  * Setup timer style selector buttons
  */
 function setupStyleSelector() {
-  if (!DOM.styleBtns) return;
-
-  DOM.styleBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const style = btn.dataset.style;
-      
-      // Update UI
-      DOM.styleBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      
-      // Update timer
-      if (DOM.timerDisplay) {
-        DOM.timerDisplay.classList.remove('style-classic', 'style-cyber', 'style-retro', 'style-glitch', 'style-minimal');
-        if (style !== 'classic') {
-          DOM.timerDisplay.classList.add(`style-${style}`);
-        }
-      }
-      
-      // Save and notify
-      localStorage.setItem(CONFIG.STORAGE_KEYS.TIMER_STYLE, style);
-      window.api?.updateTimerStyle(style);
-    });
-  });
+  // Style selector removed - colors are now handled by color selector
 }
 
 /**
@@ -460,9 +461,14 @@ function setupColorSelector() {
       DOM.colorBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       
-      // Update timer display color
-      if (DOM.timerDisplay) {
-        DOM.timerDisplay.style.color = color;
+      // Update timer display colors
+      if (DOM.player1TimerMain) {
+        DOM.player1TimerMain.style.color = color;
+        DOM.player1TimerMain.style.textShadow = `0 0 20px ${color}99`;
+      }
+      if (DOM.player2TimerMain) {
+        DOM.player2TimerMain.style.color = color;
+        DOM.player2TimerMain.style.textShadow = `0 0 20px ${color}99`;
       }
       
       // Save and notify
@@ -474,31 +480,96 @@ function setupColorSelector() {
 }
 
 /**
+ * Setup editable player names
+ */
+function setupEditablePlayerNames() {
+  const setupNameEditing = (nameElement, playerNum) => {
+    if (!nameElement) return;
+    
+    nameElement.addEventListener('click', () => {
+      // Only allow editing if timers are not running
+      if ((playerNum === 1 && state.player1Running) || (playerNum === 2 && state.player2Running)) {
+        return;
+      }
+      
+      const currentName = nameElement.textContent;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentName;
+      input.className = 'player-name-input';
+      input.style.cssText = `
+        font-size: 18px;
+        padding: 5px;
+        border: 2px solid #00ff88;
+        background: rgba(0, 0, 0, 0.8);
+        color: #00ff88;
+        text-align: center;
+        font-weight: bold;
+      `;
+      
+      nameElement.replaceWith(input);
+      input.focus();
+      input.select();
+      
+      const saveName = () => {
+        const newName = input.value.trim() || (playerNum === 1 ? 'Player 1' : 'Player 2');
+        const storageKey = playerNum === 1 ? 'player1Name' : 'player2Name';
+        
+        nameElement.textContent = newName;
+        input.replaceWith(nameElement);
+        localStorage.setItem(storageKey, newName);
+        
+        // Update state reference if needed
+        state.listeningForHotkey = false;
+      };
+      
+      input.addEventListener('blur', saveName);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          saveName();
+        }
+      });
+    });
+  };
+  
+  setupNameEditing(DOM.player1NameMain, 1);
+  setupNameEditing(DOM.player2NameMain, 2);
+}
+
+/**
  * Setup score control buttons
  */
 function setupScoreButtons() {
-  if (DOM.p1Plus) DOM.p1Plus.addEventListener('click', () => addScore(1));
-  if (DOM.p1Minus) DOM.p1Minus.addEventListener('click', () => subtractScore(1));
-  if (DOM.p2Plus) DOM.p2Plus.addEventListener('click', () => addScore(2));
-  if (DOM.p2Minus) DOM.p2Minus.addEventListener('click', () => subtractScore(2));
-  if (DOM.resetScoreBtn) DOM.resetScoreBtn.addEventListener('click', resetScores);
+  // Score buttons are now integrated in the main timer display
 }
 
 /**
  * Load saved timer settings from localStorage
  */
 function loadSavedTimerSettings() {
-  // Load saved style
-  const savedStyle = localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_STYLE) || 'classic';
-  const styleBtn = document.querySelector(`[data-style="${savedStyle}"]`);
-  if (styleBtn) styleBtn.click();
-
   // Load saved color
-  const savedColorName = localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_COLOR);
-  if (savedColorName) {
-    const colorBtn = document.querySelector(`[data-name="${savedColorName}"]`);
-    if (colorBtn) colorBtn.click();
+  const savedColorName = localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_COLOR) || 'blue';
+  const colorBtn = document.querySelector(`[data-name="${savedColorName}"]`);
+  if (colorBtn) {
+    colorBtn.click();
+  } else {
+    // Fallback: click the first color button
+    const firstColorBtn = document.querySelector('.timer-color-btn');
+    if (firstColorBtn) firstColorBtn.click();
   }
+  
+  // Load saved player scores
+  const savedPlayer1Score = localStorage.getItem('player1Score');
+  const savedPlayer2Score = localStorage.getItem('player2Score');
+  if (savedPlayer1Score) state.player1Score = parseInt(savedPlayer1Score, 10);
+  if (savedPlayer2Score) state.player2Score = parseInt(savedPlayer2Score, 10);
+  updateScoreDisplay();
+  
+  // Load saved player names
+  const savedPlayer1Name = localStorage.getItem('player1Name') || 'Player 1';
+  const savedPlayer2Name = localStorage.getItem('player2Name') || 'Player 2';
+  if (DOM.player1NameMain) DOM.player1NameMain.textContent = savedPlayer1Name;
+  if (DOM.player2NameMain) DOM.player2NameMain.textContent = savedPlayer2Name;
 }
 
 // ============================================
@@ -509,102 +580,186 @@ function loadSavedTimerSettings() {
  * Handle keyboard hotkeys for timer
  * @param {KeyboardEvent} e - The keyboard event
  */
-function handleHotkeys(e) {
+function handleTimerHotkeys(e) {
   if (state.listeningForHotkey) return;
 
   const key = e.key.toLowerCase();
   
-  // Check start/stop hotkey
-  if (key === state.customHotkeys.startStop.toLowerCase() || 
-      (e.code === 'Space' && state.customHotkeys.startStop === ' ')) {
+  // Arrow keys to switch players
+  if (e.key === 'ArrowLeft') {
     e.preventDefault();
-    toggleTimer();
+    switchPlayer(1);
+    return;
+  }
+  if (e.key === 'ArrowRight') {
+    e.preventDefault();
+    switchPlayer(2);
     return;
   }
   
-  // Check reset hotkey
-  if (key === state.customHotkeys.reset.toLowerCase()) {
+  // Space or Enter to toggle active player timer
+  if (e.key === ' ' || e.key === 'Enter') {
     e.preventDefault();
-    resetTimer();
+    toggleActivePlayerTimer();
+    return;
+  }
+  
+  // Check custom start/stop hotkey
+  if (key === state.customHotkeys.startStop.toLowerCase() && e.key !== 'Shift') {
+    e.preventDefault();
+    toggleActivePlayerTimer();
+    return;
   }
 }
 
 /**
- * Toggle timer between running and stopped
+ * Switch active player
  */
-function toggleTimer() {
-  if (state.timerRunning) {
-    stopTimer();
+function switchPlayer(playerNum) {
+  state.activePlayer = playerNum;
+  updateActivePlayerDisplay();
+}
+
+/**
+ * Update active player display
+ */
+function updateActivePlayerDisplay() {
+  if (DOM.player1NameMain) {
+    DOM.player1NameMain.classList.toggle('active', state.activePlayer === 1);
+  }
+  if (DOM.player2NameMain) {
+    DOM.player2NameMain.classList.toggle('active', state.activePlayer === 2);
+  }
+}
+
+/**
+ * Toggle active player timer
+ */
+function toggleActivePlayerTimer() {
+  if (state.activePlayer === 1) {
+    if (state.player1Running) {
+      stopPlayerTimer(1);
+    } else {
+      startPlayerTimer(1);
+    }
   } else {
-    startTimer();
+    if (state.player2Running) {
+      stopPlayerTimer(2);
+    } else {
+      startPlayerTimer(2);
+    }
   }
 }
 
 /**
- * Start the timer
+ * Start timer for a specific player
  */
-function startTimer() {
-  if (state.timerRunning) return;
-
-  state.timerRunning = true;
-  state.timerIntervalId = setInterval(() => {
-    state.timerMilliseconds += 10;
-    updateTimerDisplay();
-    window.api?.updateTimerState({ milliseconds: state.timerMilliseconds, running: state.timerRunning });
-  }, 10);
-
-  if (DOM.timerStartBtn) {
-    DOM.timerStartBtn.textContent = '⏸ Stop';
-  }
-}
-
-/**
- * Stop the running timer
- */
-function stopTimer() {
-  state.timerRunning = false;
-  clearInterval(state.timerIntervalId);
-  window.api?.updateTimerState({ milliseconds: state.timerMilliseconds, running: state.timerRunning });
-  
-  if (DOM.timerStartBtn) {
-    DOM.timerStartBtn.textContent = '▶ Start';
-  }
-}
-
-/**
- * Reset timer to zero
- */
-function resetTimer() {
-  state.timerRunning = false;
-  clearInterval(state.timerIntervalId);
-  state.timerMilliseconds = 0;
-  updateTimerDisplay();
-  window.api?.updateTimerState({ milliseconds: state.timerMilliseconds, running: state.timerRunning });
-  
-  if (DOM.timerStartBtn) {
-    DOM.timerStartBtn.textContent = '▶ Start';
-  }
-}
-
-/**
- * Update timer display with formatted time
- */
-function updateTimerDisplay() {
-  if (!DOM.timerDisplay) return;
-
-  const totalSeconds = Math.floor(state.timerMilliseconds / 1000);
-  const centiseconds = Math.floor((state.timerMilliseconds % 1000) / 10);
-  
-  let display;
-  if (totalSeconds >= 60) {
-    const minutes = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    display = `${minutes}:${String(secs).padStart(2, '0')}`;
+function startPlayerTimer(playerNum) {
+  if (playerNum === 1) {
+    if (state.player1Running) return;
+    state.player1Running = true;
+    const startTime = Date.now() - state.player1TimeMs;
+    state.player1IntervalId = setInterval(() => {
+      state.player1TimeMs = Date.now() - startTime;
+      updatePlayerTimerDisplay(1);
+    }, 16);
   } else {
-    display = `${totalSeconds}.${String(centiseconds).padStart(2, '0')}`;
+    if (state.player2Running) return;
+    state.player2Running = true;
+    const startTime = Date.now() - state.player2TimeMs;
+    state.player2IntervalId = setInterval(() => {
+      state.player2TimeMs = Date.now() - startTime;
+      updatePlayerTimerDisplay(2);
+    }, 16);
   }
+  updateButtonStates();
+}
+
+/**
+ * Stop timer for a specific player
+ */
+function stopPlayerTimer(playerNum) {
+  if (playerNum === 1) {
+    if (state.player1IntervalId) clearInterval(state.player1IntervalId);
+    state.player1Running = false;
+  } else {
+    if (state.player2IntervalId) clearInterval(state.player2IntervalId);
+    state.player2Running = false;
+  }
+  updateButtonStates();
+  checkAutoScore();
+}
+
+/**
+ * Check for auto-scoring
+ */
+function checkAutoScore() {
+  if (state.player1Running || state.player2Running) return;
   
-  DOM.timerDisplay.textContent = display;
+  const timeDiff = state.player1TimeMs - state.player2TimeMs;
+  
+  if (timeDiff > 0) {
+    state.player1Score++;
+    localStorage.setItem('player1Score', state.player1Score);
+    updateScoreDisplay();
+    console.log(`${state.player1Name} gets a point!`);
+  } else if (timeDiff < 0) {
+    state.player2Score++;
+    localStorage.setItem('player2Score', state.player2Score);
+    updateScoreDisplay();
+    console.log(`${state.player2Name} gets a point!`);
+  }
+}
+
+/**
+ * Update button states
+ */
+function updateButtonStates() {
+  if (DOM.player1StartMain) DOM.player1StartMain.classList.toggle('active', state.player1Running);
+  if (DOM.player2StartMain) DOM.player2StartMain.classList.toggle('active', state.player2Running);
+}
+
+/**
+ * Update player timer display
+ */
+function updatePlayerTimerDisplay(playerNum) {
+  const timeMs = playerNum === 1 ? state.player1TimeMs : state.player2TimeMs;
+  const display = formatTime(timeMs);
+  
+  if (playerNum === 1 && DOM.player1TimerMain) {
+    DOM.player1TimerMain.textContent = display;
+  } else if (playerNum === 2 && DOM.player2TimerMain) {
+    DOM.player2TimerMain.textContent = display;
+  }
+}
+
+/**
+ * Format time in milliseconds
+ */
+function formatTime(ms) {
+  const seconds = Math.floor(ms / 1000);
+  const centiseconds = Math.floor((ms % 1000) / 10);
+  return `${seconds}.${String(centiseconds).padStart(2, '0')}`;
+}
+
+/**
+ * Update score display
+ */
+function updateScoreDisplay() {
+  if (DOM.scoreDisplayMain) {
+    DOM.scoreDisplayMain.textContent = `${state.player1Score} — ${state.player2Score}`;
+  }
+}
+
+/**
+ * Reset scores
+ */
+function resetScores() {
+  state.player1Score = 0;
+  state.player2Score = 0;
+  localStorage.setItem('player1Score', '0');
+  localStorage.setItem('player2Score', '0');
+  updateScoreDisplay();
 }
 
 // ============================================
@@ -648,20 +803,6 @@ function subtractScore(player) {
     }
   } catch (error) {
     console.error('Error subtracting score:', error);
-  }
-}
-
-/**
- * Reset both player scores to zero
- */
-function resetScores() {
-  try {
-    state.player1Score = 0;
-    state.player2Score = 0;
-    if (DOM.p1Score) DOM.p1Score.textContent = '0';
-    if (DOM.p2Score) DOM.p2Score.textContent = '0';
-  } catch (error) {
-    console.error('Error resetting scores:', error);
   }
 }
 
