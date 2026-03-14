@@ -59,7 +59,8 @@ const state = {
   timerHotkeys: {
     switchLeft: 'ArrowLeft',
     switchRight: 'ArrowRight',
-    toggleTimer: ' '
+    toggleTimer: ' ',
+    resetTimer: 'r'
   },
   listeningForHotkey: null,
   customHotkeys: { ...CONFIG.DEFAULT_HOTKEYS },
@@ -110,6 +111,7 @@ const DOM = {
   hotkeyLeftBtn: null,
   hotkeyRightBtn: null,
   hotkeyToggleBtn: null,
+  hotkeyResetBtn: null,
   resetHotkeysBtn: null,
 
   // Settings
@@ -172,6 +174,7 @@ function cacheDOM() {
   DOM.hotkeyLeftBtn = document.getElementById('hotkeyLeftBtn');
   DOM.hotkeyRightBtn = document.getElementById('hotkeyRightBtn');
   DOM.hotkeyToggleBtn = document.getElementById('hotkeyToggleBtn');
+  DOM.hotkeyResetBtn = document.getElementById('hotkeyResetBtn');
   DOM.resetHotkeysBtn = document.getElementById('resetHotkeysBtn');
   DOM.hotkeyInfoText = document.getElementById('hotkeyInfoText');
 
@@ -578,6 +581,8 @@ function setupTimerHotkeys() {
         switchPlayer(2);
       } else if (data.action === 'toggleTimer') {
         toggleActivePlayerTimer();
+      } else if (data.action === 'resetTimer') {
+        resetScores();
       }
     });
   }
@@ -596,13 +601,15 @@ function setupTimerHotkeys() {
   setupHotkeyButton(DOM.hotkeyLeftBtn, 'switchLeft');
   setupHotkeyButton(DOM.hotkeyRightBtn, 'switchRight');
   setupHotkeyButton(DOM.hotkeyToggleBtn, 'toggleTimer');
+  setupHotkeyButton(DOM.hotkeyResetBtn, 'resetTimer');
   
   if (DOM.resetHotkeysBtn) {
     DOM.resetHotkeysBtn.addEventListener('click', () => {
       state.timerHotkeys = {
         switchLeft: 'ArrowLeft',
         switchRight: 'ArrowRight',
-        toggleTimer: ' '
+        toggleTimer: ' ',
+        resetTimer: 'r'
       };
       localStorage.setItem('timerHotkeys', JSON.stringify(state.timerHotkeys));
       updateHotkeyDisplay();
@@ -666,13 +673,19 @@ function updateHotkeyDisplay() {
     DOM.hotkeyToggleBtn.style.background = '#1a1a1a';
     DOM.hotkeyToggleBtn.style.color = '#00ff88';
   }
+  if (DOM.hotkeyResetBtn) {
+    DOM.hotkeyResetBtn.textContent = formatHotkeyDisplay(state.timerHotkeys.resetTimer);
+    DOM.hotkeyResetBtn.style.background = '#1a1a1a';
+    DOM.hotkeyResetBtn.style.color = '#00ff88';
+  }
   
   // Update info text
   if (DOM.hotkeyInfoText) {
     const leftKey = formatHotkeyDisplay(state.timerHotkeys.switchLeft);
     const rightKey = formatHotkeyDisplay(state.timerHotkeys.switchRight);
     const toggleKey = formatHotkeyDisplay(state.timerHotkeys.toggleTimer);
-    DOM.hotkeyInfoText.textContent = `Hotkeys: ${leftKey} ${rightKey} to switch | ${toggleKey} to toggle`;
+    const resetKey = formatHotkeyDisplay(state.timerHotkeys.resetTimer);
+    DOM.hotkeyInfoText.textContent = `Hotkeys: ${leftKey} ${rightKey} to switch | ${toggleKey} to toggle | ${resetKey} to reset`;
   }
 }
 
@@ -746,6 +759,11 @@ function handleTimerHotkeys(e) {
   if (e.key === state.timerHotkeys.toggleTimer) {
     e.preventDefault();
     toggleActivePlayerTimer();
+    return;
+  }
+  if (e.key?.toLowerCase() === state.timerHotkeys.resetTimer?.toLowerCase()) {
+    e.preventDefault();
+    resetScores();
     return;
   }
 }

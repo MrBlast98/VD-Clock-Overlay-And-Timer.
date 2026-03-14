@@ -272,48 +272,87 @@ ipcMain.on('update-timer-display', (event, data) => {
 let timerHotkeys = {
   switchLeft: 'ArrowLeft',
   switchRight: 'ArrowRight',
-  toggleTimer: 'Space'
+  toggleTimer: 'Space',
+  resetTimer: 'r'
 };
+
+// Convert JavaScript key names to Electron accelerator strings
+function toElectronAccelerator(jsKey) {
+  const keyMap = {
+    'ArrowLeft': 'Left',
+    'ArrowRight': 'Right',
+    'ArrowUp': 'Up',
+    'ArrowDown': 'Down',
+    ' ': 'Space',
+    'Space': 'Space',
+    'Enter': 'Enter',
+    'Escape': 'Esc',
+    'Control': 'Ctrl',
+    'Meta': 'CmdOrCtrl',
+    'Shift': 'Shift',
+    'Alt': 'Alt'
+  };
+  
+  // If it's a function key or single character, return as-is
+  if (jsKey.match(/^F[0-9]{1,2}$/) || jsKey.length === 1) {
+    return jsKey;
+  }
+  
+  return keyMap[jsKey] || jsKey;
+}
 
 function registerGlobalTimerHotkeys() {
   try {
     // Unregister previous global shortcuts
     globalShortcut.unregisterAll();
     
+    // Convert keys to Electron accelerator format
+    const leftAccel = toElectronAccelerator(timerHotkeys.switchLeft);
+    const rightAccel = toElectronAccelerator(timerHotkeys.switchRight);
+    const toggleAccel = toElectronAccelerator(timerHotkeys.toggleTimer);
+    const resetAccel = toElectronAccelerator(timerHotkeys.resetTimer);
+    
     // Register left arrow - switch to player 1
-    globalShortcut.register(timerHotkeys.switchLeft, () => {
+    globalShortcut.register(leftAccel, () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-timer-hotkey', { action: 'switchLeft' });
       }
     });
     
     // Register right arrow - switch to player 2
-    globalShortcut.register(timerHotkeys.switchRight, () => {
+    globalShortcut.register(rightAccel, () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-timer-hotkey', { action: 'switchRight' });
       }
     });
     
     // Register space/custom key - toggle active timer
-    globalShortcut.register(timerHotkeys.toggleTimer, () => {
+    globalShortcut.register(toggleAccel, () => {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('global-timer-hotkey', { action: 'toggleTimer' });
       }
     });
     
-    console.log(`✅ Registered global timer hotkeys - Left: ${timerHotkeys.switchLeft}, Right: ${timerHotkeys.switchRight}, Toggle: ${timerHotkeys.toggleTimer}`);
+    // Register reset key - reset timers and scores
+    globalShortcut.register(resetAccel, () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('global-timer-hotkey', { action: 'resetTimer' });
+      }
+    });
+    
+    console.log(`✅ Registered global timer hotkeys - Left: ${leftAccel}, Right: ${rightAccel}, Toggle: ${toggleAccel}, Reset: ${resetAccel}`);
   } catch (err) {
     console.error('Failed to register global timer hotkeys:', err);
   }
 }
 
 // Global hotkey system - now active for dual-timer
-// Update hotkeys when renderer sends custom hotkeys
 ipcMain.on('set-global-hotkeys', (event, hotkeys) => {
   // Update hotkeys with custom values
   if (hotkeys.switchLeft) timerHotkeys.switchLeft = hotkeys.switchLeft;
   if (hotkeys.switchRight) timerHotkeys.switchRight = hotkeys.switchRight;
   if (hotkeys.toggleTimer) timerHotkeys.toggleTimer = hotkeys.toggleTimer;
+  if (hotkeys.resetTimer) timerHotkeys.resetTimer = hotkeys.resetTimer;
   
   // Re-register with new hotkeys
   registerGlobalTimerHotkeys();

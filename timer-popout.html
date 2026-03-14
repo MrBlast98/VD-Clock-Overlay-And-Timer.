@@ -450,7 +450,8 @@
       timerHotkeys: {
         switchLeft: 'ArrowLeft',
         switchRight: 'ArrowRight',
-        toggleTimer: ' '
+        toggleTimer: ' ',
+        resetTimer: 'r'
       }
     };
 
@@ -811,6 +812,11 @@
         else if (e.key === state.timerHotkeys.toggleTimer) {
           e.preventDefault();
           toggleActivePlayerTimer();
+        }
+        // Reset to reset timers and scores
+        else if (e.key?.toLowerCase() === state.timerHotkeys.resetTimer?.toLowerCase()) {
+          e.preventDefault();
+          resetScores();
         }
       });
     }
