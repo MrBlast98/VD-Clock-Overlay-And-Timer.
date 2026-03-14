@@ -66,10 +66,14 @@
       align-items: center;
       padding: 0 12px;
       z-index: 10000;
-      -webkit-app-region: drag;
       user-select: none;
       border-bottom: 1px solid rgba(0, 255, 136, 0.2);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      cursor: grab;
+    }
+
+    .title-bar:active {
+      cursor: grabbing;
     }
 
     .title-text {
@@ -77,8 +81,9 @@
       color: var(--text-muted);
       letter-spacing: 0.5px;
       font-weight: 500;
-      -webkit-app-region: drag;
       pointer-events: none;
+      user-select: none;
+      flex: 1;
     }
 
     /* ============================================
@@ -555,6 +560,47 @@
     }
 
     // ============================================
+    // Window Dragging
+    // ============================================
+
+    /**
+     * Setup window dragging via title bar
+     */
+    function setupWindowDragging() {
+      const titleBar = document.querySelector('.title-bar');
+      if (!titleBar) return;
+
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+
+      titleBar.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        const deltaX = e.clientX - dragStartX;
+        const deltaY = e.clientY - dragStartY;
+
+        // Send drag delta to main process
+        if (window.timerApi?.moveWindow) {
+          window.timerApi.moveWindow(deltaX, deltaY);
+        }
+
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+      });
+
+      document.addEventListener('mouseup', () => {
+        isDragging = false;
+      });
+    }
+
+    // ============================================
     // Initialization
     // ============================================
 
@@ -584,6 +630,9 @@
           elements.transparentBtn.addEventListener('click', handleTransparentClick);
         }
         window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        // Setup window dragging
+        setupWindowDragging();
         
         // Setup IPC listeners
         setupTimerUpdateListener();

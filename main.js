@@ -63,6 +63,7 @@ function createTimerPopOutWindow() {
     height: 200,
     frame: false,
     alwaysOnTop: true,
+    type: 'toolbar',
     resizable: true,
     transparent: true,
     show: false,
@@ -82,6 +83,8 @@ function createTimerPopOutWindow() {
   // Show window when ready
   timerPopOutWindow.once('ready-to-show', () => {
     timerPopOutWindow.show();
+    // Ensure highest z-order level for gaming overlay
+    timerPopOutWindow.setAlwaysOnTop(true, 'screen-saver');
   });
   
   timerPopOutWindow.on('closed', () => {
@@ -101,6 +104,14 @@ ipcMain.on('update-timer-state', (event, state) => {
   // Broadcast to pop-out window
   if (timerPopOutWindow && !timerPopOutWindow.isDestroyed()) {
     timerPopOutWindow.webContents.send('timer-update', timerState);
+  }
+});
+
+// Handle timer window dragging
+ipcMain.on('move-timer-window', (event, { deltaX, deltaY }) => {
+  if (timerPopOutWindow && !timerPopOutWindow.isDestroyed()) {
+    const [x, y] = timerPopOutWindow.getPosition();
+    timerPopOutWindow.setPosition(Math.round(x + deltaX), Math.round(y + deltaY));
   }
 });
 

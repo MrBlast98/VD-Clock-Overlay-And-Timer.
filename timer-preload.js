@@ -13,5 +13,8 @@ contextBridge.exposeInMainWorld('timerApi', {
     ipcRenderer.on('timer-style-update', (event, data) => {
       callback(data);
     });
+  },
+  moveWindow: (deltaX, deltaY) => {
+    ipcRenderer.send('move-timer-window', { deltaX, deltaY });
   }
 });
