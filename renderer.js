@@ -855,6 +855,20 @@ function updatePlayerTimerDisplay(playerNum) {
   } else if (playerNum === 2 && DOM.player2TimerMain) {
     DOM.player2TimerMain.textContent = display;
   }
+  
+  // Send timer updates to main.js for popout window
+  if (window.api?.updateTimerDisplay) {
+    window.api.updateTimerDisplay({
+      player1TimeMs: state.player1TimeMs,
+      player1Running: state.player1Running,
+      player2TimeMs: state.player2TimeMs,
+      player2Running: state.player2Running,
+      player1Score: state.player1Score,
+      player2Score: state.player2Score,
+      player1Name: state.player1Name,
+      player2Name: state.player2Name
+    });
+  }
 }
 
 /**

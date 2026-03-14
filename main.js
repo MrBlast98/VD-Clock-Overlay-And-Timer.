@@ -260,6 +260,13 @@ ipcMain.on('update-timer-color', (event, { color, colorName }) => {
   }
 });
 
+// Handle timer display updates from renderer and broadcast to popout
+ipcMain.on('update-timer-display', (event, data) => {
+  if (timerPopOutWindow && !timerPopOutWindow.isDestroyed()) {
+    timerPopOutWindow.webContents.send('timer-update', data);
+  }
+});
+
 // Global hotkey system deprecated - using local hotkeys for dual-timer
 // IPC handler kept for backwards compatibility but not actively used
 ipcMain.on('set-global-hotkeys', (event, hotkeys) => {

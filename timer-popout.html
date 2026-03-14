@@ -377,6 +377,18 @@
   <div class="title-bar">
     <span class="title-text">VD CLOCK - MATCH TIMER</span>
     <div class="controls">
+      <div id="colorPickerContainer" style="position: relative; display: flex; align-items: center;">
+        <button class="control-btn" id="colorPickerBtn" title="Change color" aria-label="Change color">🎨</button>
+        <div id="colorMenu" style="position: absolute; bottom: 45px; left: 0; background: rgba(0, 0, 0, 0.9); border: 1px solid #00ff88; border-radius: 4px; padding: 8px; display: none; z-index: 10001; flex-direction: column; gap: 6px;">
+          <button class="color-opt" data-color="#00ff88" style="width: 30px; height: 30px; background: #00ff88; border: 2px solid #00ff88; border-radius: 3px; cursor: pointer;" title="Green"></button>
+          <button class="color-opt" data-color="#00ffff" style="width: 30px; height: 30px; background: #00ffff; border: 2px solid #00ffff; border-radius: 3px; cursor: pointer;" title="Cyan"></button>
+          <button class="color-opt" data-color="#ff00ff" style="width: 30px; height: 30px; background: #ff00ff; border: 2px solid #ff00ff; border-radius: 3px; cursor: pointer;" title="Purple"></button>
+          <button class="color-opt" data-color="#ff0080" style="width: 30px; height: 30px; background: #ff0080; border: 2px solid #ff0080; border-radius: 3px; cursor: pointer;" title="Pink"></button>
+          <button class="color-opt" data-color="#ffff00" style="width: 30px; height: 30px; background: #ffff00; border: 2px solid #ffff00; border-radius: 3px; cursor: pointer;" title="Yellow"></button>
+          <button class="color-opt" data-color="#ff8000" style="width: 30px; height: 30px; background: #ff8000; border: 2px solid #ff8000; border-radius: 3px; cursor: pointer;" title="Orange"></button>
+          <button class="color-opt" data-color="#ffffff" style="width: 30px; height: 30px; background: #ffffff; border: 2px solid #ffffff; border-radius: 3px; cursor: pointer;" title="White"></button>
+        </div>
+      </div>
       <button class="control-btn" id="resetScoreBtn" title="Reset scores" aria-label="Reset scores">↻</button>
       <button class="control-btn" id="transparentBtn" title="Toggle transparent background" aria-label="Toggle transparent background">👁️</button>
       <button class="close-btn" id="closeBtn" title="Close timer window" aria-label="Close timer window">✕</button>
@@ -435,6 +447,11 @@
       player2Name: localStorage.getItem('player2Name') || 'PLAYER 2',
       player1Score: parseInt(localStorage.getItem('player1Score')) || 0,
       player2Score: parseInt(localStorage.getItem('player2Score')) || 0,
+      timerHotkeys: {
+        switchLeft: 'ArrowLeft',
+        switchRight: 'ArrowRight',
+        toggleTimer: ' '
+      }
     };
 
     const elements = {};
@@ -456,6 +473,9 @@
       elements.player1StopBtn = document.getElementById('player1StopBtn');
       elements.player2StartBtn = document.getElementById('player2StartBtn');
       elements.player2StopBtn = document.getElementById('player2StopBtn');
+      elements.colorPickerBtn = document.getElementById('colorPickerBtn');
+      elements.colorMenu = document.getElementById('colorMenu');
+      elements.colorOpts = document.querySelectorAll('.color-opt');
     }
 
     function updatePlayerNames() {
@@ -773,19 +793,76 @@
     }
 
     function setupHotkeys() {
+      // Load custom hotkeys from localStorage
+      loadCustomHotkeys();
+      
       document.addEventListener('keydown', (e) => {
-        // Left/Right arrow to switch players
-        if (e.key === 'ArrowLeft') {
+        // Left to switch to Player 1
+        if (e.key === state.timerHotkeys.switchLeft) {
           e.preventDefault();
           switchPlayer(1);
-        } else if (e.key === 'ArrowRight') {
+        }
+        // Right to switch to Player 2
+        else if (e.key === state.timerHotkeys.switchRight) {
           e.preventDefault();
           switchPlayer(2);
         }
-        // Space or Enter to toggle active player timer
-        else if (e.key === ' ' || e.key === 'Enter') {
+        // Space/custom to toggle active player timer
+        else if (e.key === state.timerHotkeys.toggleTimer) {
           e.preventDefault();
           toggleActivePlayerTimer();
+        }
+      });
+    }
+
+    function loadCustomHotkeys() {
+      const saved = localStorage.getItem('timerHotkeys');
+      if (saved) {
+        try {
+          state.timerHotkeys = JSON.parse(saved);
+        } catch (e) {
+          console.error('Failed to load custom hotkeys:', e);
+        }
+      }
+    }
+
+    // ============================================
+    // Color Picker
+    // ============================================
+    function setupColorPicker() {
+      if (!elements.colorPickerBtn) return;
+      
+      // Toggle color menu
+      elements.colorPickerBtn.addEventListener('click', () => {
+        if (elements.colorMenu) {
+          elements.colorMenu.style.display = elements.colorMenu.style.display === 'none' ? 'flex' : 'none';
+        }
+      });
+      
+      // Color selection
+      elements.colorOpts.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const color = btn.dataset.color;
+          state.currentColor = color;
+          localStorage.setItem('timerColorHex', color);
+          updateDynamicStyles();
+          
+          // Close menu
+          if (elements.colorMenu) {
+            elements.colorMenu.style.display = 'none';
+          }
+          
+          // Notify main app
+          if (window.timerApi?.updateTimerColor) {
+            window.timerApi.updateTimerColor(color, 'custom');
+          }
+        });
+      });
+      
+      // Close menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#colorPickerContainer') && elements.colorMenu) {
+          elements.colorMenu.style.display = 'none';
         }
       });
     }
@@ -835,6 +912,7 @@
         updateActivePlayerDisplay();
         setupPlayerNameEditing();
         setupWindowDragging();
+        setupColorPicker();
         setupHotkeys();
         setupTimerUpdateListener();
         setupStyleUpdateListener();

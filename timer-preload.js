@@ -25,5 +25,8 @@ contextBridge.exposeInMainWorld('timerApi', {
   },
   updateTimerStyle: (style) => {
     ipcRenderer.send('update-timer-style', style);
+  },
+  updateTimerColor: (color, colorName) => {
+    ipcRenderer.send('update-timer-color', { color, colorName });
   }
 });
