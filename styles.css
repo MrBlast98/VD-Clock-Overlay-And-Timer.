@@ -612,6 +612,7 @@ body {
 .color-btn.neon-pink { background: #ff0080; box-shadow: 0 0 15px rgba(255, 0, 128, 0.6); }
 .color-btn.neon-yellow { background: #ffff00; box-shadow: 0 0 15px rgba(255, 255, 0, 0.6); }
 .color-btn.neon-orange { background: #ff8000; box-shadow: 0 0 15px rgba(255, 128, 0, 0.6); }
+.color-btn.neon-white { background: #ffffff; box-shadow: 0 0 15px rgba(255, 255, 255, 0.6); color: #000; }
 
 .scoreboard {
   display: flex;
