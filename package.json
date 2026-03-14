@@ -1,0 +1,15 @@
+{
+  "name": "vd-clock-map-overlay",
+  "version": "1.0.0",
+  "description": "Violence District Clock System Map Overlay",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev"
+  },
+  "dependencies": {
+    "electron": "^31.0.0"
+  },
+  "author": "",
+  "license": "MIT"
+}

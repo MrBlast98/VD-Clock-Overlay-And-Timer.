@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VD Clock Map Overlay</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>Violence District</h1>
+      
+      <div class="category-tabs">
+        <button class="category-tab active" data-category="maps">🗺️ Maps</button>
+        <button class="category-tab" data-category="1v1">⚔️ 1V1</button>
+        <button class="category-tab" data-category="settings">⚙️ Settings</button>
+      </div>
+
+      <div class="category-section active" id="maps-section">
+        <h2>Clock Maps</h2>
+        <div class="map-list" id="mapList">
+          <!-- Map buttons will be generated here -->
+        </div>
+      </div>
+
+      <div class="category-section" id="1v1-section">
+        <h2>1V1 Match</h2>
+        <div class="onev1-panel">
+          <div class="timer-display" id="timerDisplay">0.00</div>
+          
+          <div class="style-selector">
+            <div class="style-label">Timer Styles</div>
+            <div class="style-buttons">
+              <button class="style-btn active" data-style="classic" title="Classic Neon">Classic</button>
+              <button class="style-btn" data-style="cyber" title="Cyberglow">Cyber</button>
+              <button class="style-btn" data-style="retro" title="Retro Arcade">Retro</button>
+              <button class="style-btn" data-style="glitch" title="Glitch Effect">Glitch</button>
+              <button class="style-btn" data-style="minimal" title="Minimal">Min</button>
+            </div>
+          </div>
+          
+          <div class="color-selector">
+            <button class="color-btn neon-green active" data-color="#00ff88" data-name="green" title="Neon Green"></button>
+            <button class="color-btn neon-cyan" data-color="#00ffff" data-name="cyan" title="Neon Cyan"></button>
+            <button class="color-btn neon-purple" data-color="#ff00ff" data-name="purple" title="Neon Purple"></button>
+            <button class="color-btn neon-pink" data-color="#ff0080" data-name="pink" title="Neon Pink"></button>
+            <button class="color-btn neon-yellow" data-color="#ffff00" data-name="yellow" title="Neon Yellow"></button>
+            <button class="color-btn neon-orange" data-color="#ff8000" data-name="orange" title="Neon Orange"></button>
+          </div>
+          
+          <div class="timer-controls">
+            <div class="timer-control-row">
+              <button id="timerStartBtn" class="timer-btn">▶ Start</button>
+              <button id="timerStopBtn" class="timer-btn">⏸ Stop</button>
+            </div>
+            <div class="timer-control-row">
+              <button id="timerResetBtn" class="timer-btn">⟲ Reset</button>
+              <button id="timerPopoutBtn" class="timer-btn" style="flex: 0 1 auto; padding: 8px 12px;">📍 Pop Out</button>
+            </div>
+          </div>
+          
+          <div class="scoreboard">
+            <div class="player">
+              <div class="player-name">Player 1</div>
+              <div class="score-display" id="p1Score">0</div>
+              <div class="score-buttons">
+                <button class="score-btn" id="p1Plus">+</button>
+                <button class="score-btn" id="p1Minus">−</button>
+              </div>
+            </div>
+            <div class="vs-text">VS</div>
+            <div class="player">
+              <div class="player-name">Player 2</div>
+              <div class="score-display" id="p2Score">0</div>
+              <div class="score-buttons">
+                <button class="score-btn" id="p2Plus">+</button>
+                <button class="score-btn" id="p2Minus">−</button>
+              </div>
+            </div>
+          </div>
+          <button id="resetScoreBtn" class="score-reset-btn">Reset Scores</button>
+        </div>
+      </div>
+
+      <div class="category-section" id="settings-section">
+        <h2>Hotkey Settings</h2>
+        <div class="settings-panel">
+          <div class="setting-item">
+            <label>Start/Stop Timer:</label>
+            <div class="hotkey-input-group">
+              <input type="text" class="hotkey-input" id="hotkeyStartStop" readonly placeholder="Press a key...">
+              <button class="reset-hotkey-btn" data-hotkey="startStop">Reset</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Reset Timer:</label>
+            <div class="hotkey-input-group">
+              <input type="text" class="hotkey-input" id="hotkeyReset" readonly placeholder="Press a key...">
+              <button class="reset-hotkey-btn" data-hotkey="reset">Reset</button>
+            </div>
+          </div>
+          <div class="setting-item">
+            <label>Timer Options:</label>
+            <div class="toggle-option">
+              <input type="checkbox" id="timertAlwaysOnTop" class="toggle-input">
+              <label for="timertAlwaysOnTop" class="toggle-label">Timer Always On Top</label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="main-area">
+      <div class="preview-area">
+        <p id="nothingSelected" class="placeholder">Select a map to display its clock image</p>
+        <img id="previewImage" class="preview-image" draggable="true">
+        <button id="popoutBtn" class="popout-btn" style="display: none;">📍 Pop Out</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

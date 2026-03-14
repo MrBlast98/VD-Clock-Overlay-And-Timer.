@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VD Clock - Match Timer</title>
+  <style>
+    /* ============================================
+       BASE STYLES
+       ============================================ */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent-color: #00ff88;
+      --accent-glow: rgba(0, 255, 136, 0.6);
+      --background-primary: rgba(13, 13, 15, 0.95);
+      --background-secondary: rgba(0, 0, 0, 0.7);
+      --background-transparent: rgba(13, 13, 15, 0.1);
+      --text-muted: #888;
+      --button-hover: rgba(0, 150, 200, 1);
+      --button-default: rgba(0, 150, 200, 0.8);
+      --button-danger: rgba(255, 80, 80, 0.8);
+      --button-danger-hover: rgba(255, 100, 100, 1);
+      --transition-speed: 0.2s;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--background-primary);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      user-select: none;
+      overflow: hidden;
+      -webkit-user-select: none;
+      -webkit-app-region: no-drag;
+    }
+
+    body.grabbing {
+      cursor: grabbing;
+    }
+
+    /* ============================================
+       TITLE BAR
+       ============================================ */
+    .title-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 40px;
+      background: var(--background-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 12px;
+      z-index: 10000;
+      -webkit-app-region: drag;
+      user-select: none;
+      border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .title-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      font-weight: 500;
+      -webkit-app-region: drag;
+      pointer-events: none;
+    }
+
+    /* ============================================
+       CONTROLS
+       ============================================ */
+    .controls {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
+    }
+
+    .control-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 4px;
+      background: var(--button-default);
+      color: white;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-speed) ease;
+      padding: 0;
+      -webkit-app-region: no-drag;
+      pointer-events: auto !important;
+      outline: none;
+      user-select: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .control-btn:hover {
+      background: var(--button-hover);
+      box-shadow: 0 2px 8px rgba(0, 150, 200, 0.5);
+      transform: scale(1.05);
+    }
+
+    .control-btn:active {
+      transform: scale(0.95);
+    }
+
+    .close-btn {
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 4px;
+      background: var(--button-danger);
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition-speed) ease;
+      padding: 0;
+      -webkit-app-region: no-drag;
+      pointer-events: auto !important;
+      outline: none;
+      user-select: none;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .close-btn:hover {
+      background: var(--button-danger-hover);
+      box-shadow: 0 2px 8px rgba(255, 80, 80, 0.5);
+      transform: scale(1.05);
+    }
+
+    .close-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* ============================================
+       CONTAINER & DISPLAY
+       ============================================ */
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 50px 20px 20px 20px;
+      position: relative;
+      -webkit-app-region: no-drag;
+      pointer-events: auto;
+    }
+
+    .timer-display {
+      font-size: clamp(28px, 15vw, 100px);
+      font-weight: 700;
+      text-align: center;
+      color: var(--accent-color);
+      font-family: 'Courier New', 'Monaco', monospace;
+      text-shadow: 0 0 30px var(--accent-glow);
+      letter-spacing: 2px;
+      flex-shrink: 0;
+      min-width: 0;
+      -webkit-app-region: no-drag;
+      cursor: default;
+      user-select: none;
+      -webkit-user-select: none;
+      line-height: 1.2;
+    }
+
+    /* ============================================
+       TRANSPARENT MODE
+       ============================================ */
+    body.transparent {
+      background: var(--background-transparent);
+    }
+
+    body.transparent .container {
+      background: transparent;
+    }
+
+    body.transparent .title-bar {
+      background: rgba(0, 0, 0, 0.2);
+      border-bottom-color: rgba(0, 255, 136, 0.1);
+    }
+
+    /* ============================================
+       ANIMATION STYLES (Dynamic)
+       ============================================ */
+    #dynamicStyles {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="title-bar">
+    <span class="title-text">VD CLOCK - MATCH TIMER</span>
+    <div class="controls">
+      <button class="control-btn" id="transparentBtn" title="Toggle transparent background" aria-label="Toggle transparent background">👁️</button>
+      <button class="close-btn" id="closeBtn" title="Close timer window" aria-label="Close timer window">✕</button>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="timer-display" id="timerDisplay">0.00</div>
+  </div>
+
+  <style id="dynamicStyles"></style>
+
+  <script>
+    // ============================================
+    // Configuration & Constants
+    // ============================================
+    const CONFIG = {
+      STATE_DEBOUNCE_MS: 500,
+      DEFAULT_COLOR: '#00ff88',
+      DEFAULT_STYLE: 'classic',
+      STORAGE_KEYS: {
+        TIMER_STYLE: 'timerStyle',
+        TIMER_COLOR: 'timerColorHex',
+        TIMER_TRANSPARENT: 'timerTransparent'
+      }
+    };
+
+    // ============================================
+    // State Management
+    // ============================================
+    const state = {
+      allowClose: false,
+      currentStyle: localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_STYLE) || CONFIG.DEFAULT_STYLE,
+      currentColor: localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_COLOR) || CONFIG.DEFAULT_COLOR,
+      isTransparent: localStorage.getItem(CONFIG.STORAGE_KEYS.TIMER_TRANSPARENT) === 'true',
+      stateRequestTimeout: null
+    };
+
+    // ============================================
+    // DOM Elements Cache
+    // ============================================
+    const elements = {
+      timerDisplay: null,
+      closeBtn: null,
+      transparentBtn: null,
+      dynamicStyles: null
+    };
+
+    /**
+     * Initialize DOM element references
+     */
+    function initElements() {
+      elements.timerDisplay = document.getElementById('timerDisplay');
+      elements.closeBtn = document.getElementById('closeBtn');
+      elements.transparentBtn = document.getElementById('transparentBtn');
+      elements.dynamicStyles = document.getElementById('dynamicStyles');
+
+      if (!elements.timerDisplay || !elements.closeBtn || !elements.transparentBtn) {
+        console.error('Failed to initialize DOM elements');
+      }
+    }
+
+    // ============================================
+    // Event Handlers
+    // ============================================
+
+    /**
+     * Handle close button click
+     * @param {Event} e - Click event
+     */
+    function handleCloseClick(e) {
+      try {
+        e.stopPropagation();
+        e.preventDefault();
+        state.allowClose = true;
+        window.close();
+      } catch (error) {
+        console.error('Error closing window:', error);
+      }
+    }
+
+    /**
+     * Handle transparency toggle button click
+     * @param {Event} e - Click event
+     */
+    function handleTransparentClick(e) {
+      try {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        document.body.classList.toggle('transparent');
+        state.isTransparent = document.body.classList.contains('transparent');
+        
+        localStorage.setItem(
+          CONFIG.STORAGE_KEYS.TIMER_TRANSPARENT,
+          state.isTransparent ? 'true' : 'false'
+        );
+        
+        updateTransparentButtonStyle();
+      } catch (error) {
+        console.error('Error toggling transparency:', error);
+      }
+    }
+
+    /**
+     * Update transparent button appearance based on state
+     */
+    function updateTransparentButtonStyle() {
+      if (!elements.transparentBtn) return;
+      
+      elements.transparentBtn.style.background = state.isTransparent
+        ? 'rgba(0, 255, 136, 0.7)'
+        : 'rgba(0, 150, 200, 0.8)';
+    }
+
+    /**
+     * Handle window unload event
+     * Prevent accidental closing except via close button
+     * @param {BeforeUnloadEvent} e - Unload event
+     */
+    function handleBeforeUnload(e) {
+      if (!state.allowClose) {
+        e.preventDefault();
+        e.returnValue = '';
+        return false;
+      }
+    }
+
+    // ============================================
+    // Timer Display Update
+    // ============================================
+
+    /**
+     * Format milliseconds into display string
+     * @param {number} milliseconds - Time in milliseconds
+     * @returns {string} Formatted time string
+     */
+    function formatTime(milliseconds) {
+      const totalSeconds = Math.floor(milliseconds / 1000);
+      const centiseconds = Math.floor((milliseconds % 1000) / 10);
+      
+      if (totalSeconds >= 60) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${minutes}:${String(secs).padStart(2, '0')}`;
+      }
+      
+      return `${totalSeconds}.${String(centiseconds).padStart(2, '0')}`;
+    }
+
+    /**
+     * Update timer display with new time
+     * @param {number} milliseconds - Time in milliseconds
+     */
+    function updateDisplay(milliseconds) {
+      try {
+        if (!elements.timerDisplay) return;
+        elements.timerDisplay.textContent = formatTime(milliseconds);
+      } catch (error) {
+        console.error('Error updating display:', error);
+      }
+    }
+
+    // ============================================
+    // Style Management
+    // ============================================
+
+    /**
+     * Update dynamic CSS styles based on current color
+     */
+    function updateDynamicStyles() {
+      if (!elements.dynamicStyles) return;
+      
+      const color = state.currentColor;
+      
+      elements.dynamicStyles.textContent = `
+        .timer-display {
+          color: ${color};
+          text-shadow: 0 0 30px ${color}33;
+        }
+
+        .timer-display.style-cyber {
+          text-shadow: 
+            0 0 10px ${color},
+            0 0 20px ${color},
+            0 0 30px ${color},
+            0 0 40px ${color},
+            0 0 50px ${color};
+          animation: cyber-glow 0.5s ease-in-out infinite;
+        }
+
+        @keyframes cyber-glow {
+          0%, 100% { filter: brightness(1); }
+          50% { filter: brightness(1.3); }
+        }
+
+        .timer-display.style-glitch {
+          text-shadow: 
+            2px 0 ${color},
+            -2px 0 ${color},
+            0 0 20px ${color};
+          animation: glitch 0.15s infinite;
+        }
+
+        @keyframes glitch {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-2px); }
+          40% { transform: translateX(2px); }
+          60% { transform: translateX(-2px); }
+          80% { transform: translateX(2px); }
+        }
+
+        .timer-display.style-retro {
+          text-shadow: 0 0 15px ${color};
+          animation: arcade-pulse 0.4s steps(2) infinite;
+        }
+
+        @keyframes arcade-pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
+        .timer-display.style-minimal {
+          text-shadow: none;
+          filter: brightness(0.8);
+        }
+      `;
+    }
+
+    /**
+     * Apply timer style with animation restart
+     * @param {string} styleName - Name of style to apply
+     */
+    function applyStyle(styleName) {
+      try {
+        if (!elements.timerDisplay) return;
+        
+        // Update dynamic styles first
+        updateDynamicStyles();
+        
+        // Remove all style classes
+        elements.timerDisplay.classList.remove(
+          'style-cyber',
+          'style-glitch',
+          'style-retro',
+          'style-minimal'
+        );
+        
+        // Force reflow to restart animations
+        void elements.timerDisplay.offsetHeight;
+        
+        // Apply new style if not classic
+        if (styleName && styleName !== 'classic') {
+          elements.timerDisplay.classList.add(`style-${styleName}`);
+        }
+        
+        state.currentStyle = styleName;
+      } catch (error) {
+        console.error('Error applying style:', error);
+      }
+    }
+
+    // ============================================
+    // IPC Communication
+    // ============================================
+
+    /**
+     * Setup IPC listener for timer updates
+     */
+    function setupTimerUpdateListener() {
+      if (!window.timerApi?.onTimerUpdate) {
+        console.warn('Timer API not available for updates');
+        return;
+      }
+      
+      try {
+        window.timerApi.onTimerUpdate((data) => {
+          if (typeof data.milliseconds === 'number') {
+            updateDisplay(data.milliseconds);
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up timer update listener:', error);
+      }
+    }
+
+    /**
+     * Setup IPC listener for style/color updates
+     */
+    function setupStyleUpdateListener() {
+      if (!window.timerApi?.onStyleUpdate) {
+        console.warn('Timer API not available for style updates');
+        return;
+      }
+      
+      try {
+        window.timerApi.onStyleUpdate((data) => {
+          const style = data.style || state.currentStyle;
+          const color = data.color || state.currentColor;
+          
+          if (data.style) {
+            localStorage.setItem(CONFIG.STORAGE_KEYS.TIMER_STYLE, data.style);
+            applyStyle(style);
+          }
+          
+          if (data.color) {
+            localStorage.setItem(CONFIG.STORAGE_KEYS.TIMER_COLOR, data.color);
+            state.currentColor = color;
+            updateDynamicStyles();
+          }
+        });
+      } catch (error) {
+        console.error('Error setting up style update listener:', error);
+      }
+    }
+
+    /**
+     * Request timer state from main process
+     */
+    function requestTimerState() {
+      if (!window.timerApi?.requestTimerState) {
+        return;
+      }
+      
+      try {
+        window.timerApi.requestTimerState();
+      } catch (error) {
+        console.error('Error requesting timer state:', error);
+      }
+    }
+
+    /**
+     * Setup periodic timer state requests
+     */
+    function setupStateRequests() {
+      state.stateRequestTimeout = setInterval(() => {
+        requestTimerState();
+      }, CONFIG.STATE_DEBOUNCE_MS);
+    }
+
+    // ============================================
+    // Initialization
+    // ============================================
+
+    /**
+     * Initialize the timer window
+     */
+    function initialize() {
+      try {
+        // Initialize DOM elements
+        initElements();
+        
+        // Apply saved settings
+        if (state.isTransparent) {
+          document.body.classList.add('transparent');
+        }
+        updateTransparentButtonStyle();
+        
+        // Setup styles
+        updateDynamicStyles();
+        applyStyle(state.currentStyle);
+        
+        // Setup event listeners
+        if (elements.closeBtn) {
+          elements.closeBtn.addEventListener('click', handleCloseClick);
+        }
+        if (elements.transparentBtn) {
+          elements.transparentBtn.addEventListener('click', handleTransparentClick);
+        }
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        // Setup IPC listeners
+        setupTimerUpdateListener();
+        setupStyleUpdateListener();
+        setupStateRequests();
+        
+        // Request initial state
+        requestTimerState();
+        
+        console.log('Timer window initialized successfully');
+      } catch (error) {
+        console.error('Initialization error:', error);
+      }
+    }
+
+    // Start initialization when DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+      initialize();
+    }
+  </script>
+</body>
+</html>
