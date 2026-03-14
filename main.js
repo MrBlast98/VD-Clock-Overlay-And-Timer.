@@ -182,6 +182,7 @@ ipcMain.on('stop-player-timer', (event, { playerNum }) => {
 
 app.on('ready', () => {
   createWindow();
+  registerGlobalTimerHotkeys();
 });
 
 // Handle loading images
@@ -267,11 +268,56 @@ ipcMain.on('update-timer-display', (event, data) => {
   }
 });
 
-// Global hotkey system deprecated - using local hotkeys for dual-timer
-// IPC handler kept for backwards compatibility but not actively used
+// Register global timer hotkeys
+let timerHotkeys = {
+  switchLeft: 'ArrowLeft',
+  switchRight: 'ArrowRight',
+  toggleTimer: 'Space'
+};
+
+function registerGlobalTimerHotkeys() {
+  try {
+    // Unregister previous global shortcuts
+    globalShortcut.unregisterAll();
+    
+    // Register left arrow - switch to player 1
+    globalShortcut.register(timerHotkeys.switchLeft, () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('global-timer-hotkey', { action: 'switchLeft' });
+      }
+    });
+    
+    // Register right arrow - switch to player 2
+    globalShortcut.register(timerHotkeys.switchRight, () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('global-timer-hotkey', { action: 'switchRight' });
+      }
+    });
+    
+    // Register space/custom key - toggle active timer
+    globalShortcut.register(timerHotkeys.toggleTimer, () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('global-timer-hotkey', { action: 'toggleTimer' });
+      }
+    });
+    
+    console.log(`✅ Registered global timer hotkeys - Left: ${timerHotkeys.switchLeft}, Right: ${timerHotkeys.switchRight}, Toggle: ${timerHotkeys.toggleTimer}`);
+  } catch (err) {
+    console.error('Failed to register global timer hotkeys:', err);
+  }
+}
+
+// Global hotkey system - now active for dual-timer
+// Update hotkeys when renderer sends custom hotkeys
 ipcMain.on('set-global-hotkeys', (event, hotkeys) => {
-  // Global hotkeys no longer registered for dual-timer system
-  console.log('Global hotkeys update received but not used - dual-timer uses local hotkeys');
+  // Update hotkeys with custom values
+  if (hotkeys.switchLeft) timerHotkeys.switchLeft = hotkeys.switchLeft;
+  if (hotkeys.switchRight) timerHotkeys.switchRight = hotkeys.switchRight;
+  if (hotkeys.toggleTimer) timerHotkeys.toggleTimer = hotkeys.toggleTimer;
+  
+  // Re-register with new hotkeys
+  registerGlobalTimerHotkeys();
+  console.log('Global timer hotkeys updated:', timerHotkeys);
 });
 
 app.on('window-all-closed', () => {

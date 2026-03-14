@@ -15,5 +15,11 @@ contextBridge.exposeInMainWorld('api', {
   setTimerAlwaysOnTop: (alwaysOnTop) => ipcRenderer.send('set-timer-always-on-top', alwaysOnTop),
   updateTimerStyle: (style) => ipcRenderer.send('update-timer-style', style),
   updateTimerColor: (color, colorName) => ipcRenderer.send('update-timer-color', { color, colorName }),
-  updateTimerDisplay: (data) => ipcRenderer.send('update-timer-display', data)
+  updateTimerDisplay: (data) => ipcRenderer.send('update-timer-display', data),
+  setGlobalHotkeys: (hotkeys) => ipcRenderer.send('set-global-hotkeys', hotkeys),
+  onGlobalTimerHotkey: (callback) => {
+    ipcRenderer.on('global-timer-hotkey', (event, data) => {
+      callback(data);
+    });
+  }
 });

@@ -564,6 +564,24 @@ function setupScoreButtons() {
 function setupTimerHotkeys() {
   loadSavedHotkeys();
   
+  // Send custom hotkeys to main process for global registration
+  if (window.api?.setGlobalHotkeys) {
+    window.api.setGlobalHotkeys(state.timerHotkeys);
+  }
+  
+  // Listen for global hotkey triggers from main process
+  if (window.api?.onGlobalTimerHotkey) {
+    window.api.onGlobalTimerHotkey((data) => {
+      if (data.action === 'switchLeft') {
+        switchPlayer(1);
+      } else if (data.action === 'switchRight') {
+        switchPlayer(2);
+      } else if (data.action === 'toggleTimer') {
+        toggleActivePlayerTimer();
+      }
+    });
+  }
+  
   const setupHotkeyButton = (btn, hotkeyType) => {
     if (!btn) return;
     
@@ -588,6 +606,10 @@ function setupTimerHotkeys() {
       };
       localStorage.setItem('timerHotkeys', JSON.stringify(state.timerHotkeys));
       updateHotkeyDisplay();
+      // Update global hotkeys
+      if (window.api?.setGlobalHotkeys) {
+        window.api.setGlobalHotkeys(state.timerHotkeys);
+      }
     });
   }
   
@@ -603,6 +625,10 @@ function setupTimerHotkeys() {
       localStorage.setItem('timerHotkeys', JSON.stringify(state.timerHotkeys));
       updateHotkeyDisplay();
       state.listeningForHotkey = null;
+      // Update global hotkeys
+      if (window.api?.setGlobalHotkeys) {
+        window.api.setGlobalHotkeys(state.timerHotkeys);
+      }
     }
   });
 }
