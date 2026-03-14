@@ -64,7 +64,7 @@ function createTimerPopOutWindow() {
     frame: false,
     alwaysOnTop: true,
     resizable: true,
-    transparent: false,
+    transparent: true,
     show: false,
     webPreferences: {
       nodeIntegration: false,
