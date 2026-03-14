@@ -95,6 +95,12 @@
       align-items: center;
       -webkit-app-region: no-drag;
       pointer-events: auto;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .title-bar:hover .controls {
+      opacity: 1;
     }
 
     .control-btn {
@@ -217,6 +223,7 @@
       background: transparent;
       box-shadow: none;
       border: none;
+      opacity: 1;
     }
 
     body.transparent .control-btn:hover {
@@ -228,6 +235,7 @@
       background: transparent;
       box-shadow: none;
       border: none;
+      opacity: 1;
     }
 
     body.transparent .close-btn:hover {
