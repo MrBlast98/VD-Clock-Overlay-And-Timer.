@@ -1,15 +1,50 @@
 {
   "name": "vd-clock-map-overlay",
   "version": "1.0.0",
-  "description": "Violence District Clock System Map Overlay",
+  "description": "Violence District Clock System Map Overlay - Competitive 1V1 Timer",
   "main": "main.js",
+  "homepage": "https://github.com/MrBlast98/VD-Clock-Overlay-And-Timer",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev": "electron . --dev",
+    "build": "electron-builder -w",
+    "build:win": "electron-builder --win --publish never",
+    "build:all": "electron-builder -mwl"
   },
   "dependencies": {
-    "electron": "^31.0.0"
   },
-  "author": "",
-  "license": "MIT"
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^26.8.1"
+  },
+  "author": "MrBlast98",
+  "license": "MIT",
+  "build": {
+    "appId": "com.vdclockoverlay.app",
+    "productName": "VD Clock Map Overlay",
+    "files": [
+      "main.js",
+      "preload.js",
+      "timer-preload.js",
+      "renderer.js",
+      "index.html",
+      "timer-popout.html",
+      "popout.html",
+      "styles.css",
+      "images/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "VD Clock Map Overlay"
+    }
+  }
 }
