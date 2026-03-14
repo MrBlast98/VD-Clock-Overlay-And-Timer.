@@ -421,9 +421,13 @@
     // ============================================
     const state = {
       player1TimeMs: 0,
-      player2TimeMs: 0,
       player1Running: false,
+      player1HasGone: false,
+      
+      player2TimeMs: 0,
       player2Running: false,
+      player2HasGone: false,
+      
       activePlayer: 1,
       isTransparent: localStorage.getItem('timerTransparent') === 'true',
       currentColor: localStorage.getItem('timerColorHex') || '#00ff88',
@@ -632,6 +636,7 @@
       if (window.timerApi?.stopPlayerTimer) {
         window.timerApi.stopPlayerTimer(1);
         state.player1Running = false;
+        state.player1HasGone = true;
         updateButtonStates();
         checkAutoScore();
       }
@@ -649,6 +654,7 @@
       if (window.timerApi?.stopPlayerTimer) {
         window.timerApi.stopPlayerTimer(2);
         state.player2Running = false;
+        state.player2HasGone = true;
         updateButtonStates();
         checkAutoScore();
       }
@@ -667,12 +673,13 @@
     // Auto-Scoring
     // ============================================
     function checkAutoScore() {
-      // Only check when both are stopped
+      // Both timers must be stopped and both players must have taken their turn
       if (state.player1Running || state.player2Running) return;
+      if (!state.player1HasGone || !state.player2HasGone) return;
       
       const timeDiff = state.player1TimeMs - state.player2TimeMs;
       
-      // Award point if there's a time difference
+      // Award point to player with higher time
       if (timeDiff > 0) {
         state.player1Score++;
         localStorage.setItem('player1Score', state.player1Score);
@@ -684,6 +691,13 @@
         updateScoreDisplay();
         console.log(`${state.player2Name} gets a point!`);
       }
+      
+      // Reset the "has gone" flags and clear timers for next round
+      state.player1HasGone = false;
+      state.player2HasGone = false;
+      state.player1TimeMs = 0;
+      state.player2TimeMs = 0;
+      updateTimerDisplay();
     }
 
     // ============================================

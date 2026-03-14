@@ -40,10 +40,12 @@ const state = {
   player1TimeMs: 0,
   player1Running: false,
   player1IntervalId: null,
+  player1HasGone: false,
   
   player2TimeMs: 0,
   player2Running: false,
   player2IntervalId: null,
+  player2HasGone: false,
   
   activePlayer: 1,
 
@@ -682,9 +684,11 @@ function stopPlayerTimer(playerNum) {
   if (playerNum === 1) {
     if (state.player1IntervalId) clearInterval(state.player1IntervalId);
     state.player1Running = false;
+    state.player1HasGone = true;
   } else {
     if (state.player2IntervalId) clearInterval(state.player2IntervalId);
     state.player2Running = false;
+    state.player2HasGone = true;
   }
   updateButtonStates();
   checkAutoScore();
@@ -694,7 +698,9 @@ function stopPlayerTimer(playerNum) {
  * Check for auto-scoring
  */
 function checkAutoScore() {
+  // Both timers must be stopped and both players must have taken their turn
   if (state.player1Running || state.player2Running) return;
+  if (!state.player1HasGone || !state.player2HasGone) return;
   
   const timeDiff = state.player1TimeMs - state.player2TimeMs;
   
@@ -709,6 +715,14 @@ function checkAutoScore() {
     updateScoreDisplay();
     console.log(`${state.player2Name} gets a point!`);
   }
+  
+  // Reset the "has gone" flags and clear timers for next round
+  state.player1HasGone = false;
+  state.player2HasGone = false;
+  state.player1TimeMs = 0;
+  state.player2TimeMs = 0;
+  updatePlayerTimerDisplay(1);
+  updatePlayerTimerDisplay(2);
 }
 
 /**
@@ -757,9 +771,15 @@ function updateScoreDisplay() {
 function resetScores() {
   state.player1Score = 0;
   state.player2Score = 0;
+  state.player1HasGone = false;
+  state.player2HasGone = false;
+  state.player1TimeMs = 0;
+  state.player2TimeMs = 0;
   localStorage.setItem('player1Score', '0');
   localStorage.setItem('player2Score', '0');
   updateScoreDisplay();
+  updatePlayerTimerDisplay(1);
+  updatePlayerTimerDisplay(2);
 }
 
 // ============================================
