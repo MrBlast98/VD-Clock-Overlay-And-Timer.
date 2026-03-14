@@ -182,7 +182,6 @@ ipcMain.on('stop-player-timer', (event, { playerNum }) => {
 
 app.on('ready', () => {
   createWindow();
-  registerGlobalHotkeys();
 });
 
 // Handle loading images
